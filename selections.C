@@ -2,7 +2,7 @@
 // This script takes reconstruction output and puts it in a more useful format.
 //
 // To run in root:
-//   .L selections.C
+//   .L selections.C+
 //   selections s;
 //   s.Loop();
 //
