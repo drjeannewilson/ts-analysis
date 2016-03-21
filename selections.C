@@ -58,7 +58,17 @@
 //   recoEnergy         -  reconstructed energy - array length nSubevents with element for each subevent
 //   recoCaptures       -  reconstructed number of neutron captures, where one capture is one subevent with 2-10 MeV energy occurring after 1-100 microseconds
 
-
+// Added by Jeanne
+//   recoMichels - reconstructed number of decay electrons, where one decay electron is one subevent with E>15MeV and occuring after 135-8000 ns 
+//-  recoNRings         - number of rings in each cluster
+//-   E_pi_pm           - energy of any pi_pluses or pi_minuses created (n_pi_pm)
+//-   isHighE_cluster    - did recon for this cluster go through highE chain?
+//    mu_diffVtx_x
+//    mu_diffVtx_y
+//    mu_diffVtx_z
+//    e_diffVtx_x
+//    e_diffVtx_y
+//    e_diffVtx_z
 
 
 #define selections_cxx
@@ -108,6 +118,7 @@ void selections::Loop()
    double diffVtxTrans;
    double lepton_KE;
    double recoPIDLikelihood;
+   double E_pi_pm[10];
    int ne;
    int nmu;
    int npi0;
@@ -127,6 +138,12 @@ void selections::Loop()
    double mu_reco_nu_E;
    double mu_recoKE;
    double mu_diffVtx;
+   double mu_diffVtx_x;
+   double mu_diffVtx_y;
+   double mu_diffVtx_z;
+   double e_diffVtx_x;
+   double e_diffVtx_y;
+   double e_diffVtx_z;
    double mu_diffDir;
    double mu_diffKE;
    double mu_diffVtxLong;
@@ -142,6 +159,7 @@ void selections::Loop()
    double e_diffVtxLong;
    double e_diffVtxTrans;
    double e_diff_nu_E;
+   int recoMichels;
    TFile *out = new TFile(Form("selection_test_%i_%i.root",TDatime().GetDate(),TDatime().GetTime()),"RECREATE");
 
    TTree * ntuple = new TTree("selection","selection");
@@ -158,6 +176,7 @@ void selections::Loop()
    ntuple->Branch("n_pi_pm", &npipm, "n_pi_pm/I");
    ntuple->Branch("n_k0", &nk0, "n_k0/I");
    ntuple->Branch("n_k_pm", &nkpm, "n_k_pm/I");
+   ntuple->Branch("E_pi_pm", &E_pi_pm, "E_pi_pm[n_pi_pm]/D");
    ntuple->Branch("nneutron", &nneutron, "nneutron/I");
    ntuple->Branch("nproton", &nproton, "nproton/I");
    ntuple->Branch("ngamma", &ngamma, "ngamma/I");
@@ -171,6 +190,9 @@ void selections::Loop()
    ntuple->Branch("mu_reco_nu_E", &mu_reco_nu_E, "mu_reco_nu_E/D");
    ntuple->Branch("mu_recoKE", &mu_recoKE, "mu_recoKE/D");
    ntuple->Branch("mu_diffVtx", &mu_diffVtx, "mu_diffVtx/D");
+   ntuple->Branch("mu_diffVtx_x", &mu_diffVtx_x, "mu_diffVtx_x/D");
+   ntuple->Branch("mu_diffVtx_y", &mu_diffVtx_y, "mu_diffVtx_y/D");
+   ntuple->Branch("mu_diffVtx_z", &mu_diffVtx_z, "mu_diffVtx_z/D");
    ntuple->Branch("mu_diffDir", &mu_diffDir, "mu_diffDir/D");
    ntuple->Branch("mu_diffKE", &mu_diffKE, "mu_diffKE/D");
    ntuple->Branch("mu_diffVtxLong", &mu_diffVtxLong, "mu_diffVtxLong/D");
@@ -181,12 +203,17 @@ void selections::Loop()
    ntuple->Branch("e_reco_nu_E", &e_reco_nu_E, "e_reco_nu_E/D");
    ntuple->Branch("e_recoKE", &e_recoKE, "e_recoKE/D");
    ntuple->Branch("e_diffVtx", &e_diffVtx, "e_diffVtx/D");
+   ntuple->Branch("e_diffVtx_x", &e_diffVtx_x, "e_diffVtx_x/D");
+   ntuple->Branch("e_diffVtx_y", &e_diffVtx_y, "e_diffVtx_y/D");
+   ntuple->Branch("e_diffVtx_z", &e_diffVtx_z, "e_diffVtx_z/D");
    ntuple->Branch("e_diffDir", &e_diffDir, "e_diffDir/D");
    ntuple->Branch("e_diffKE", &e_diffKE, "e_diffKE/D");
    ntuple->Branch("e_diffVtxLong", &e_diffVtxLong, "e_diffVtxLong/D");
    ntuple->Branch("e_diffVtxTrans", &e_diffVtxTrans, "e_diffVtxTrans/D");
    ntuple->Branch("e_diff_nu_E", &e_diff_nu_E, "e_diff_nu_E/D");
    ntuple->Branch("nClusters",&nClusters,"nClusters/I");
+   ntuple->Branch("recoNRings",&recoNRings, "recoNRings[nClusters]/I");
+   ntuple->Branch("isHighECluster",&isHighE, "isHighECluster[nClusters]/O");
    ntuple->Branch("ring1PEs", &ring1PEs, "ring1PEs/I");
    ntuple->Branch("ring2PEs", &ring2PEs, "ring2PEs/I");
    ntuple->Branch("recoPID", &recoPID0, "recoPID/I");
@@ -196,6 +223,7 @@ void selections::Loop()
    ntuple->Branch("recoTime",recoTime,"recoTime[nSubevents]/D");
    ntuple->Branch("recoEnergy",recoEnergy,"recoEnergy[nSubevents]/D");
    ntuple->Branch("recoCaptures",&recoCaptures,"recoCaptures/I");
+   ntuple->Branch("recoMichels",&recoMichels,"recoMichel/I");
 
    Long64_t nentries = fChain->GetEntries();
 
@@ -220,19 +248,23 @@ void selections::Loop()
       nproton = 0;
       ngamma = 0;
       nother = 0;
+      E_pi_pm = {0,0,0,0,0,0,0,0,0,0};
       for (int itrk = 0; itrk < ntrks; itrk++) {
          // Find highest KE outgoing charged lepton
-         if (TMath::Abs(mpid[itrk]) == 11 || TMath::Abs(mpid[itrk]) == 13 && KE[itrk] > lepton_KE) lepton_KE = KE[itrk];
+         if (TMath::Abs(mpid[itrk]) == 11 || (TMath::Abs(mpid[itrk]) == 13 && KE[itrk] > lepton_KE)) lepton_KE = KE[itrk];
 
          //Count particle types
          if (TMath::Abs(mpid[itrk]) == 11) ne++;
          else if (TMath::Abs(mpid[itrk]) == 13) nmu++;
          else if (mpid[itrk] == 22) ngamma++;
          else if (mpid[itrk] == 111) npi0++;
-         else if (TMath::Abs(mpid[itrk]) == 211) npipm++;
+         else if (TMath::Abs(mpid[itrk]) == 211){
+             if(npipm<10)E_pi_pm[npipm] = KE[itrk];
+             npipm++;
+         }
          else if (mpid[itrk] == 130) nk0++;
          else if (mpid[itrk] == 310) nk0++;
-         else if (TMath::Abs(mpid[itrk]) == 321) nkpm++;
+         else if (TMath::Abs(mpid[itrk]) == 321)nkpm++;
          else if (mpid[itrk] == 2212) nproton++;
          else if (mpid[itrk] == 2112) nneutron++;
          else nother++;
@@ -307,6 +339,9 @@ void selections::Loop()
          mu_reco_nu_E = (mn * recoE - ml * ml / 2.) / (mn - recoE + recoP * recoDirZHighEMuon[0]);
          mu_diff_nu_E = mu_reco_nu_E - neutrino_E;
 
+         mu_diffVtx_x = recoVtxXHighEMuon[0]-trueVtxX;
+         mu_diffVtx_y = recoVtxYHighEMuon[0]-trueVtxY;
+         mu_diffVtx_z = recoVtxZHighEMuon[0]-trueVtxZ;
          mu_diffVtx = TMath::Sqrt(TMath::Power(recoVtxXHighEMuon[0]-trueVtxX,2)
                                   +TMath::Power(recoVtxYHighEMuon[0]-trueVtxY,2)
                                   +TMath::Power(recoVtxZHighEMuon[0]-trueVtxZ,2));
@@ -335,12 +370,15 @@ void selections::Loop()
          e_diffKE = e_recoKE-lepton_KE;
 
          mn = 939;
-         ml = 105;
+         ml = 0.511;
          recoE = recoEnergyHighEElectron[0] + ml;
          recoP = TMath::Sqrt(recoE * recoE - ml * ml);
          e_reco_nu_E = (mn * recoE - ml * ml / 2.) / (mn - recoE + recoP * recoDirZHighEElectron[0]);
          e_diff_nu_E = e_reco_nu_E - neutrino_E;
 
+         e_diffVtx_x = recoVtxXHighEElectron[0]-trueVtxX;
+         e_diffVtx_y = recoVtxYHighEElectron[0]-trueVtxY;
+         e_diffVtx_z = recoVtxZHighEElectron[0]-trueVtxZ;
          e_diffVtx = TMath::Sqrt(TMath::Power(recoVtxXHighEElectron[0]-trueVtxX,2)
                                   +TMath::Power(recoVtxYHighEElectron[0]-trueVtxY,2)
                                   +TMath::Power(recoVtxZHighEElectron[0]-trueVtxZ,2));
@@ -365,9 +403,18 @@ void selections::Loop()
          e_diffVtxTrans = TMath::Sqrt(e_diffVtx*e_diffVtx - e_diffVtxLong*e_diffVtxLong);
 
          recoPIDLikelihood = recoLnLHighEMuon[0] - recoLnLHighEElectron[0];
+         // Loop through the reconstruction and count the number of michels (should really do at reco stage but put here for now)
+         recoMichels = 0;
+         for(int is=0;is<nSubEvts;++is){
+            if(recoTime[is] > 135 && recoTime[is]<8000 && recoEnergy[is]>15.){
+              recoMichels++;
+            }
+         }
 
       }
       ntuple->Fill();
+      // quick break for testing
+ //     if(jentry>1e6)break;
    }
    ntuple->Write();
 }

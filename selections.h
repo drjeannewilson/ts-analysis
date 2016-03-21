@@ -213,23 +213,29 @@ selections::selections(TTree *tree, TTree *tracker, TTree *out) : fChain(0), nRo
       TChain *o = new TChain("HitsTree");
       TString flavs[4] = {"numu","nue","antinumu","antinue"};
       TString hcs[4] = {"nu","antinu"};
-      for(int k=0; k<1; k++){
+      for(int k=0; k<1; k++){           // 1-2 would be reverse horn current instead.
          const char * h = hcs[k].Data();
          for (int j = 0; j < 4; j++) {
             const char *s = flavs[j].Data();
+// swap following two lines for a quick test when you only run over one file instead of many
             for (int i = 1000; i < 1100; i++) {
+//            for (int i = 1000; i < 1001; i++) {
                //Missing vector files for antinu mode:
                if (k == 1 && j == 0 && (i == 1096 || i==1037)) continue;
                if (k == 1 && j == 1 && (i == 1017 || i == 1053)) continue;
                if (k == 1 && j == 2 && i == 1078) continue;
                if (k == 1 && j == 3 && (i == 1018 || i == 1019 || i == 1053)) continue;
-               char *file = Form("/data/hyperk/wchsandbox_reco/flav_%s/%s_%s_%i/%s_%s_%i_12in_reco_5.root", s, h, s, i, h, s,i);
+               char *file = Form("/data/hyperk/wchsandbox_reco/flav_%s/%s_%s_%i/%s_%s_%i_12in_reco_4.root", s, h, s, i, h, s,i);
                f->AddFile(file);
                le->AddFile(file);
                hee->AddFile(file);
                hem->AddFile(file);
                d->AddFile(file);
-               tr->AddFile(Form("/data/hyperk/wchsandbox_reco/vectors/v00-01/flav_%s/genev_%s_cylinder_r551_z2200_Z_%s_1721827_%i.root",s, h, s, i), 1000);
+// There was a problem with the vector files whereby root is not really only reading 1000 entries from the file and therefore 
+// leading to a mismatch of info between the truth vector info and the simulated, reconstructed events. Therefore, 
+// have created a set of vectors with only first 1000 events in each - use these instead.
+               tr->AddFile(Form("/data/wilson/HK/TITUSanalysis/repairVectors/flav_%s/short_genev_%s_cylinder_r551_z2200_Z_%s_1721827_%i.root",s,a,s,i),1000);
+//               tr->AddFile(Form("/data/hyperk/wchsandbox_reco/vectors/v00-01/flav_%s/genev_%s_cylinder_r551_z2200_Z_%s_1721827_%i.root",s, h, s, i), 1000);
                o->AddFile(Form("/data/hyperk/wchsandbox_reco/flav_%s/%s_%s_%i/%s_%s_%i_out_12in.root", s, h, s, i, h, s, i));
             }
          }
