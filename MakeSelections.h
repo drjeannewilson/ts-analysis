@@ -271,7 +271,8 @@ public :
    virtual void     Show(Long64_t entry = -1);
 
    TTree *MakeNtuple(TString name, float Abspvc[100], int &Numatom, double &Erec, double &Etrue, Float_t pnu[100],
-                     Float_t dirnu[100][3], Int_t &Numbndn, Int_t &Numbndp, Int_t &Numfrep, Int_t &Ibound, Int_t &flavEvents);
+                     Float_t dirnu[100][3], Int_t &Numbndn, Int_t &Numbndp, Int_t &Numfrep, Int_t &Ibound, Int_t &flavEvents, Int_t 
+			&nRecoNeutrons, Int_t &ntrueNcap);
 };
 #endif
 
@@ -294,12 +295,16 @@ MakeSelections::MakeSelections(bool isAntiNu, TTree *tree, TTree *tracker) : fCh
       for(int j=0; j<4; j++) {
          flav_count[j]=0;
          const char *s = flavs[j].Data();
+// swap the following 2 lines to only run on the files named _1000_ (ie on one set for a quick test)
+//         for (int i = 1000; i < 1001; i++) {
          for (int i = 1000; i < 1100; i++) {
             //Missing vector files for antinu mode:
             if(isAntiNu && j==0 && (i==1096 || i==1037)) continue;
             if(isAntiNu && j==1 && (i==1017 || i==1053)) continue;
             if(isAntiNu && j==2 && i==1078) continue;
             if(isAntiNu && j==3 && (i==1018 || i==1019 || i==1053)) continue;
+// Change the reco version used
+//            char *file = Form("/data/hyperk/wchsandbox_reco/flav_%s/%s_%s_%i/%s_%s_%i_12in_reco_6.root", s, a, s, i, a, s, i);
             char *file = Form("/data/hyperk/wchsandbox_reco/flav_%s/%s_%s_%i/%s_%s_%i_12in_reco_4.root", s, a, s, i, a, s, i);
             f->AddFile(file,1000);
             le->AddFile(file,1000);
@@ -307,8 +312,13 @@ MakeSelections::MakeSelections(bool isAntiNu, TTree *tree, TTree *tracker) : fCh
             hem->AddFile(file,1000);
             d->AddFile(file,1000);
             t->AddFile(Form("/data/hyperk/wchsandbox_reco/flav_%s/%s_%s_%i/%s_%s_%i_generatorcardfile.root",s,a,s,i,a,s,i),1000);
-            tr->AddFile(Form("/data/hyperk/wchsandbox_reco/vectors/v00-01/flav_%s/genev_%s_cylinder_r551_z2200_Z_%s_1721827_%i.root",s,a,s,i),1000);
+// There was a problem with the vector files whereby root is not really only reading 1000 entries from the file and therefore 
+// leading to a mismatch of info between the truth vector info and the simulated, reconstructed events. Therefore, 
+// have created a set of vectors with only first 1000 events in each - use these instead.
+            tr->AddFile(Form("/data/wilson/HK/TITUSanalysis/repairVectors/flav_%s/short_genev_%s_cylinder_r551_z2200_Z_%s_1721827_%i.root",s,a,s,i),1000);
+//            tr->AddFile(Form("/data/hyperk/wchsandbox_reco/vectors/v00-01/flav_%s/genev_%s_cylinder_r551_z2200_Z_%s_1721827_%i.root",s,a,s,i),1000);
             flav_count[j]+=1000;
+	    cout << i  << " " << j << " " << s << " " << a << endl;
          }
       }
       f->AddFriend(le);

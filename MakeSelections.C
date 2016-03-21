@@ -8,7 +8,13 @@
 // IsAntiNu should be false for forward horn current (nu beam) or true for reverse horn current (antinu beam)
 //
 
-
+// Jeanne's modifications: 
+// Added neutron counting
+// Added decay electron cuts
+// Added some ouput variables to the output ntuples
+// modified the selection cuts (PID etc.) in line with tuning for optimised selection
+// Added a weighting on 1/9 to NCpi0 events (just by neut code) justify that fitQun type algorithm gives 
+// this level of improvement
 
 #define MakeSelections_cxx
 #include "MakeSelections.h"
@@ -28,6 +34,8 @@ void MakeSelections::Loop()
    //int mode;
    int Numatom=1;
    double Erec, Etrue;
+   int recoNeutrons;
+   int ntrueNcap;
 
    Float_t         pnu[100];   //[numnu]  GeV/c
    Float_t         dirnu[100][3];   //[numnu]
@@ -38,28 +46,32 @@ void MakeSelections::Loop()
 
    const char * s = IsAntiNu ? "RHC" : "FHC";
    TFile *out = new TFile(Form("selections_tagged_%s.root",s),"RECREATE");
-   TTree *numu_mulike_nontag = MakeNtuple("numu_mulike_nontag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[0]);
-   TTree *nue_mulike_nontag = MakeNtuple("nue_mulike_nontag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[1]);
-   TTree *numubar_mulike_nontag = MakeNtuple("numubar_mulike_nontag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[2]);
-   TTree *nuebar_mulike_nontag = MakeNtuple("nuebar_mulike_nontag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[3]);
-   TTree *numu_elike_nontag = MakeNtuple("numu_elike_nontag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[0]);
-   TTree *nue_elike_nontag = MakeNtuple("nue_elike_nontag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[1]);
-   TTree *numubar_elike_nontag = MakeNtuple("numubar_elike_nontag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[2]);
-   TTree *nuebar_elike_nontag = MakeNtuple("nuebar_elike_nontag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[3]);
-   TTree *numu_mulike_ntag = MakeNtuple("numu_mulike_ntag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[0]);
-   TTree *nue_mulike_ntag = MakeNtuple("nue_mulike_ntag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[1]);
-   TTree *numubar_mulike_ntag = MakeNtuple("numubar_mulike_ntag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[2]);
-   TTree *nuebar_mulike_ntag = MakeNtuple("nuebar_mulike_ntag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[3]);
-   TTree *numu_elike_ntag = MakeNtuple("numu_elike_ntag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[0]);
-   TTree *nue_elike_ntag = MakeNtuple("nue_elike_ntag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[1]);
-   TTree *numubar_elike_ntag = MakeNtuple("numubar_elike_ntag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[2]);
-   TTree *nuebar_elike_ntag = MakeNtuple("nuebar_elike_ntag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[3]);
+   //cout << "flav count " << flav_count[0] << " " << flav_count[1] << " " << flav_count[2] << " " << flav_count[3] << endl;
+   TTree *numu_mulike_nontag = MakeNtuple("numu_mulike_nontag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[0],recoNeutrons,ntrueNcap);
+   TTree *nue_mulike_nontag = MakeNtuple("nue_mulike_nontag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[1],recoNeutrons,ntrueNcap);
+   TTree *numubar_mulike_nontag = MakeNtuple("numubar_mulike_nontag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[2],recoNeutrons,ntrueNcap);
+   TTree *nuebar_mulike_nontag = MakeNtuple("nuebar_mulike_nontag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[3],recoNeutrons,ntrueNcap);
+   TTree *numu_elike_nontag = MakeNtuple("numu_elike_nontag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[0],recoNeutrons,ntrueNcap);
+   TTree *nue_elike_nontag = MakeNtuple("nue_elike_nontag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[1],recoNeutrons,ntrueNcap);
+   TTree *numubar_elike_nontag = MakeNtuple("numubar_elike_nontag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[2],recoNeutrons,ntrueNcap);
+   TTree *nuebar_elike_nontag = MakeNtuple("nuebar_elike_nontag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[3],recoNeutrons,ntrueNcap);
+   TTree *numu_mulike_ntag = MakeNtuple("numu_mulike_ntag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[0],recoNeutrons,ntrueNcap);
+   TTree *nue_mulike_ntag = MakeNtuple("nue_mulike_ntag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[1],recoNeutrons,ntrueNcap);
+   TTree *numubar_mulike_ntag = MakeNtuple("numubar_mulike_ntag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[2],recoNeutrons,ntrueNcap);
+   TTree *nuebar_mulike_ntag = MakeNtuple("nuebar_mulike_ntag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[3],recoNeutrons,ntrueNcap);
+   TTree *numu_elike_ntag = MakeNtuple("numu_elike_ntag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[0],recoNeutrons,ntrueNcap);
+   TTree *nue_elike_ntag = MakeNtuple("nue_elike_ntag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[1],recoNeutrons,ntrueNcap);
+   TTree *numubar_elike_ntag = MakeNtuple("numubar_elike_ntag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[2],recoNeutrons,ntrueNcap);
+   TTree *nuebar_elike_ntag = MakeNtuple("nuebar_elike_ntag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[3],recoNeutrons,ntrueNcap);
 
    Long64_t nentries = fChain->GetEntriesFast();
 
    TRandom3 rand(31415);
+   TRandom3 myrand(987654);  
+   // dwall cuts
 
    Long64_t nbytes = 0, nb = 0;
+   int count_ncpi_chuck = 0;
    for (Long64_t jentry=0; jentry<nentries;jentry++) {
       Long64_t ientry = LoadTree(jentry);
       if (ientry < 0) break;
@@ -67,19 +79,23 @@ void MakeSelections::Loop()
       // if (Cut(ientry) < 0) continue;
       if(!isHighE[0]) continue;
       if(recoNRings[0] != 1) continue;
-      Int_t pid = (recoLnLHighEMuon[0] - recoLnLHighEElectron[0] > -200) ? 13 : 11;
+      Int_t pid = (recoLnLHighEMuon[0] - recoLnLHighEElectron[0] > -400) ? 13 : 11;
       Double_t recoKE = pid==13 ? recoEnergyHighEMuon[0] : recoEnergyHighEElectron[0];
       if(recoKE < 100) continue;
       if(recoKE > 2500) continue;
       Double_t vtxZ = pid==13 ? recoVtxZHighEMuon[0] : recoVtxZHighEElectron[0];
       double dWallZ = 1100-TMath::Abs(vtxZ);
-      if(dWallZ < 100) continue;
+      if(dWallZ < 200) continue;
       Double_t vtxX = pid==13 ? recoVtxXHighEMuon[0] : recoVtxXHighEElectron[0];
       Double_t vtxY = pid==13 ? recoVtxYHighEMuon[0] : recoVtxYHighEElectron[0];
       double recoVtxR2 = vtxX * vtxX + vtxY * vtxY;
       double dWallR = 550-TMath::Sqrt(recoVtxR2);
-      if(dWallR < 100) continue;
-      
+      if(dWallR < 200) continue;
+      // throw up 8/9th of NC pio0
+      float myran = myrand.Rndm();
+      //cout << myran << " " << mode << " ";
+      if((abs(NEneutmode)==31 || abs(NEneutmode)==32 || abs(NEneutmode)==36) && myran<0.88889)continue;
+      //cout << "keep " << endl;
       double mn = 939;
       double ml = pid ==13 ? 105 : 0.511;
       double recoE = recoKE + ml;
@@ -198,7 +214,7 @@ void MakeSelections::Loop()
          i++;
       }
        */
-      //std::cout << jentry << " " << NEipvc[0] << std::endl;
+      //std::cout << jentry << " entry of type " << NEipvc[0] << std::endl;
       double a = 1- dirZ * dirZ;
       Double_t dirX = pid==13 ? recoDirXHighEMuon[0] : recoDirXHighEElectron[0];
       Double_t dirY = pid==13 ? recoDirYHighEMuon[0] : recoDirYHighEElectron[0];
@@ -207,6 +223,7 @@ void MakeSelections::Loop()
       double recoToWallR = (TMath::Sqrt(b*b-a*c)-b)/a;
       double recoToWallZ = 1100 - vtxZ *TMath::Abs(dirZ);
       double recoToWall = recoToWallR<recoToWallZ ? recoToWallR : recoToWallZ;
+      if(recoToWall<200) continue;
       bool neutron_tag = false;
 /*      for(int iSubevent = 0; iSubevent< nSubevents && !neutron_tag; iSubevent++){
          if(ring[iSubevent]==0 && recoEnergy[iSubevent]>2 && recoEnergy[iSubevent]<10
@@ -214,14 +231,22 @@ void MakeSelections::Loop()
             neutron_tag = true;
       }
 */
+      ntrueNcap = nCaptures;  // Get from original file
+      int recoMichels = 0;
+      recoNeutrons = 0;
       for(int iSubevent = 0; iSubevent < nSubevents; iSubevent ++) {
-         if (recoEnergy[iSubevent] > 2 && recoEnergy[iSubevent] < 10 && recoTime[iSubevent] > 1000 && recoTime[iSubevent] < 100000) {
-            neutron_tag = true;
-            break;
-         }
+            if(recoTime[iSubevent] > 135 && recoTime[iSubevent]<8000 && recoEnergy[iSubevent]>15.){
+              recoMichels++;
+            }
+            if (recoEnergy[iSubevent] > 2 && recoEnergy[iSubevent] < 10 && recoTime[iSubevent] > 1000 && recoTime[iSubevent] < 100000) {
+//            if (recoEnergy[iSubevent] > 2 && recoEnergy[iSubevent] < 10 && recoTime[iSubevent] > 1000 && recoTime[iSubevent] < 100000) {
+              neutron_tag = true;
+              recoNeutrons++;
+           }
       }
-      bool muLike = pid==13 && recoKE > 200 && recoKE < 2000 && Erec < 1250;
-      bool eLike = pid==11;
+      // Add extra cut on muon PID > 0
+      bool muLike = pid==13 && recoKE > 200 && recoKE < 2000 && Erec < 1250 && recoMichels <= 1 && (recoLnLHighEMuon[0] - recoLnLHighEElectron[0])>0;
+      bool eLike = pid==11  && recoMichels == 0;
       if(neutron_tag) {
          if (muLike) {
             if (NEipvc[0] == 14)
@@ -266,7 +291,7 @@ void MakeSelections::Loop()
                nuebar_elike_nontag->Fill();
          }
       }
-   }
+   }// loop through entries, jentry
    numu_mulike_ntag->Write();
    numubar_mulike_ntag->Write();
    nue_mulike_ntag->Write();
@@ -287,7 +312,7 @@ void MakeSelections::Loop()
 }
 
 TTree *MakeSelections::MakeNtuple(TString name, float Abspvc[100], int &Numatom, double &Erec, double &Etrue, Float_t pnu[100],
-                                  Float_t dirnu[100][3], Int_t &Numbndn, Int_t &Numbndp, Int_t &Numfrep, Int_t &Ibound, Int_t &flavEvents) {
+                                  Float_t dirnu[100][3], Int_t &Numbndn, Int_t &Numbndp, Int_t &Numfrep, Int_t &Ibound, Int_t &flavEvents, Int_t &nRecoNeutrons, Int_t &ntrueNcap) {
    TTree * ntuple = new TTree(name, name);
    ntuple->Branch("evt",&evt,"evt/I");
 
@@ -327,5 +352,13 @@ TTree *MakeSelections::MakeNtuple(TString name, float Abspvc[100], int &Numatom,
    ntuple->Branch("Etrue",&Etrue,"Etrue/D");
 
    ntuple->Branch("totFlavEvts",&flavEvents,"totFlavEvts/I");
+   
+   ntuple->Branch("nrecoNeutrons",&nRecoNeutrons,"nrecoNeutrons/I");
+   ntuple->Branch("ntrueNcap",&ntrueNcap,"ntrueNcap/I");
+   
+   ntuple->Branch("NEiorgvc", NEiorgvc, "NEiorgvc[Npvc]/I");
+   ntuple->Branch("NEiflgvc", NEiflgvc, "NEiflgvc[Npvc]/I");
+   ntuple->Branch("NEicrnvc", NEicrnvc, "NEicrnvc[Npvc]/I");
+   ntuple->Branch("StdHepPdg", StdHepPdg, "StdHepPdg[24]/I");
    return ntuple;
 }
