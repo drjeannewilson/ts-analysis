@@ -234,7 +234,7 @@ selections::selections(TTree *tree, TTree *tracker, TTree *out) : fChain(0), nRo
 // There was a problem with the vector files whereby root is not really only reading 1000 entries from the file and therefore 
 // leading to a mismatch of info between the truth vector info and the simulated, reconstructed events. Therefore, 
 // have created a set of vectors with only first 1000 events in each - use these instead.
-               tr->AddFile(Form("/data/wilson/HK/TITUSanalysis/repairVectors/flav_%s/short_genev_%s_cylinder_r551_z2200_Z_%s_1721827_%i.root",s,a,s,i),1000);
+               tr->AddFile(Form("/data/wilson/HK/TITUSanalysis/repairVectors/flav_%s/short_genev_%s_cylinder_r551_z2200_Z_%s_1721827_%i.root",s,h,s,i),1000);
 //               tr->AddFile(Form("/data/hyperk/wchsandbox_reco/vectors/v00-01/flav_%s/genev_%s_cylinder_r551_z2200_Z_%s_1721827_%i.root",s, h, s, i), 1000);
                o->AddFile(Form("/data/hyperk/wchsandbox_reco/flav_%s/%s_%s_%i/%s_%s_%i_out_12in.root", s, h, s, i, h, s, i));
             }
