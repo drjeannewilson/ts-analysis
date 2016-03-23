@@ -27,8 +27,16 @@ hough_test.C
 OptimiseSelection.C 
   A script to optimise and examine the cut selections based on the output of the script selections.C/.h
   Produces some plots and outputs some latex of efficiencies and purities
+OptimiseSelection_crosscheck.C 
+  Same as above but with some different settings (no flux weighting and cut on specific neutrino flavour) so that cross checks can be made easily to the Valor input.
+  Also runs on the output of the MakeSelectionsAndRoot code
 
 ReconEvaluation.C
   A script to evaluate the reconstruction properties for the selection based on the output of the script selections.C/.h
   Produces plots and evaluates quartiles. Also looks at efficiency and purity for events within true FV.
 
+MakeSelectionsAndRoot.C
+  This merges the selections code and the MakeSelections code into one script to avoid differences creaping in. Now ouputs a rootfile with the ntuple used for tuning the selections (called AllEvents) and also the Valor input trees. 
+
+GetEntries.C
+  Runs on the output of MakeSelectionsAndRoot to quickly get event numbers

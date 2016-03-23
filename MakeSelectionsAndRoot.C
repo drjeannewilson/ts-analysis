@@ -1,10 +1,11 @@
 //
-// Makes the selection files in the format that Raj uses for his sensitivity studies
+// Makes the selection files in the format that Raj uses for his sensitivity studies and the root tree used by Jeanne at the same time
 //
 // Run in root:
-//   .L MakeSelections.C
-//   MakeSelections s(IsAntiNu);
+//   .L MakeSelectionsAndRoot.C
+//   MakeSelectionsAndRoot s(IsAntiNu);
 //   s.Loop();
+// or s.Loop(0); to omit outputting the full selection ntuple (big)
 // IsAntiNu should be false for forward horn current (nu beam) or true for reverse horn current (antinu beam)
 //
 
@@ -16,8 +17,8 @@
 // Added a weighting on 1/9 to NCpi0 events (just by neut code) justify that fitQun type algorithm gives 
 // this level of improvement
 
-#define MakeSelections_cxx
-#include "MakeSelections.h"
+#define MakeSelectionsAndRoot_cxx
+#include "MakeSelectionsAndRoot.h"
 #include <TH2.h>
 #include <TStyle.h>
 #include <TCanvas.h>
@@ -25,7 +26,7 @@
 #include <iostream>
 #include <TRandom3.h>
 
-void MakeSelections::Loop()
+void MakeSelectionsAndRoot::Loop(bool outputntuple)
 {
 
    if (fChain == 0) return;
@@ -46,7 +47,7 @@ void MakeSelections::Loop()
    Int_t Ibound;
 
    const char * s = IsAntiNu ? "RHC" : "FHC";
-   TFile *out = new TFile(Form("selections_tagged_%s.root",s),"RECREATE");
+   TFile *out = new TFile(Form("selections_androot_tagged_%s.root",s),"RECREATE");
    //cout << "flav count " << flav_count[0] << " " << flav_count[1] << " " << flav_count[2] << " " << flav_count[3] << endl;
    TTree *numu_mulike_nontag = MakeNtuple("numu_mulike_nontag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[0],recoNeutrons,ntrueNcap, ntrueNeutrons);
    TTree *nue_mulike_nontag = MakeNtuple("nue_mulike_nontag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[1],recoNeutrons,ntrueNcap, ntrueNeutrons);
@@ -65,66 +66,176 @@ void MakeSelections::Loop()
    TTree *numubar_elike_ntag = MakeNtuple("numubar_elike_ntag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[2],recoNeutrons,ntrueNcap, ntrueNeutrons);
    TTree *nuebar_elike_ntag = MakeNtuple("nuebar_elike_ntag", Abspvc, Numatom, Erec, Etrue, pnu, dirnu, Numbndn, Numbndp, Numfrep, Ibound, flav_count[3],recoNeutrons,ntrueNcap, ntrueNeutrons);
 
+   // Output a root file of all events
+   TTree * ntuple = new TTree("AllEvents","AllEvents");
+   double lepton_KE;
+   double recoPIDLikelihood;
+   int npi0;
+   int nneutron;
+   int ring1PEs;
+   int ring2PEs;
+   bool isHighE0;
+   double mu_reco_dwall;
+   double mu_reco_towall;
+   double mu_reco_nu_E;
+   double mu_recoKE;
+   double e_reco_dwall;
+   double e_reco_towall;
+   double e_reco_nu_E;
+   double e_recoKE;
+   int recoMichels;
+  
+   // paired down output ntuple using parameters for developing selections on (may want to add in more parameters from selections.C)
+   ntuple->Branch("neutrino_id", &neutrino_id, "neutrino_id/I");
+   ntuple->Branch("neutrino_E", &neutrino_E, "neutrino_E/D");
+   ntuple->Branch("trueKE", &lepton_KE, "trueKE/D");
+   ntuple->Branch("interaction_mode", &mode, "interaction_mode/I");
+   ntuple->Branch("n_pi0", &npi0, "n_pi0/I");
+   ntuple->Branch("nneutron", &nneutron, "nneutron/I");
+   ntuple->Branch("true_dwall", &trueDWall, "true_dwall/D");
+   ntuple->Branch("true_towall", &trueToWall, "true_towall/D");
+   ntuple->Branch("mu_reco_dwall", &mu_reco_dwall, "mu_reco_dwall/D");
+   ntuple->Branch("mu_reco_towall", &mu_reco_towall, "mu_reco_towall/D");
+   ntuple->Branch("mu_reco_nu_E", &mu_reco_nu_E, "mu_reco_nu_E/D");
+   ntuple->Branch("mu_recoKE", &mu_recoKE, "mu_recoKE/D");
+   ntuple->Branch("e_reco_dwall", &e_reco_dwall, "e_reco_dwall/D");
+   ntuple->Branch("e_reco_towall", &e_reco_towall, "e_reco_towall/D");
+   ntuple->Branch("e_reco_nu_E", &e_reco_nu_E, "e_reco_nu_E/D");
+   ntuple->Branch("e_recoKE", &e_recoKE, "e_recoKE/D");
+   ntuple->Branch("nClusters",&nClusters,"nClusters/I");
+   ntuple->Branch("recoNRings",&recoNRings, "recoNRings[nClusters]/I");
+   ntuple->Branch("ring1PEs", &ring1PEs, "ring1PEs/I");
+   ntuple->Branch("ring2PEs", &ring2PEs, "ring2PEs/I");
+   ntuple->Branch("recoPIDLikelihood", &recoPIDLikelihood, "recoPIDLikelihood/D");
+   ntuple->Branch("isHighE", &isHighE0, "isHighE/O");
+   ntuple->Branch("nSubevents",&nSubevents,"nSubevents/I");
+   ntuple->Branch("recoTime",recoTime,"recoTime[nSubevents]/D");
+   ntuple->Branch("recoEnergy",recoEnergy,"recoEnergy[nSubevents]/D");
+   ntuple->Branch("recoCaptures",&recoCaptures,"recoCaptures/I");
+   ntuple->Branch("recoMichels",&recoMichels,"recoMichel/I");
+
    Long64_t nentries = fChain->GetEntriesFast();
 
    TRandom3 rand(31415);
    TRandom3 myrand(987654);  
-   // dwall cuts
 
    Long64_t nbytes = 0, nb = 0;
    for (Long64_t jentry=0; jentry<nentries;jentry++) {
       Long64_t ientry = LoadTree(jentry);
       if (ientry < 0) break;
       nb = GetEntry(jentry);   nbytes += nb;
-      // if (Cut(ientry) < 0) continue;
-      if(!isHighE[0]) continue;
-      if(recoNRings[0] != 1) continue;
-      Int_t pid = (recoLnLHighEMuon[0] - recoLnLHighEElectron[0] > -400) ? 13 : 11;
-      Double_t recoKE = pid==13 ? recoEnergyHighEMuon[0] : recoEnergyHighEElectron[0];
-      if(recoKE < 100) continue;
-      if(recoKE > 2500) continue;
-      Double_t vtxZ = pid==13 ? recoVtxZHighEMuon[0] : recoVtxZHighEElectron[0];
-      double dWallZ = 1100-TMath::Abs(vtxZ);
-      if(dWallZ < 200) continue;
-      Double_t vtxX = pid==13 ? recoVtxXHighEMuon[0] : recoVtxXHighEElectron[0];
-      Double_t vtxY = pid==13 ? recoVtxYHighEMuon[0] : recoVtxYHighEElectron[0];
-      double recoVtxR2 = vtxX * vtxX + vtxY * vtxY;
-      double dWallR = 550-TMath::Sqrt(recoVtxR2);
-      if(dWallR < 200) continue;
-      // throw up 8/9th of NC pio0
-      float myran = myrand.Rndm();
-//      //cout << myran << " " << mode << " ";
-//      if((abs(NEneutmode)==31 || abs(NEneutmode)==32 || abs(NEneutmode)==36) && myran<0.88889)continue;
-//      //cout << "keep " << endl;
-      // New method to count up the pi0 in the final state -> weight down events with pi0 rather than by neut code
-      int npi0 = 0;
-      int nneutron = 0;
+      // Need to extract parameters and fill ntuple before selections
+      if (nClusters == 0 || !isHighE[0]) {
+        ring1PEs = 0;
+        ring2PEs = 0;
+        isHighE0 = false;
+        recoPIDLikelihood = 0;
+        mu_reco_dwall = 0;
+        mu_reco_towall = 0;  //
+        mu_reco_nu_E = 0;
+        mu_recoKE = 0;
+        e_reco_dwall = 0;
+        e_reco_towall = 0;
+        e_reco_nu_E = 0;
+        e_recoKE = 0;
+      }else{
+        ring1PEs = ringPEs[0];
+        ring2PEs = (recoNRings[0] > 1 ? ringPEs[1] : 0);
+        isHighE0 = isHighE[0];
+        recoPIDLikelihood = recoLnLHighEMuon[0] - recoLnLHighEElectron[0];
+     
+        // parameters for reco (dwall, towall, KE, nu_e) depend on hypothesis
+        // mu hypothesis --------------
+        double vtxX = recoVtxXHighEMuon[0];
+        double vtxY = recoVtxYHighEMuon[0];
+        double vtxZ = recoVtxZHighEMuon[0];
+        double recoVtxR2 = vtxX * vtxX + vtxY * vtxY;
+        double dWallZ_mu = 1100-TMath::Abs(vtxZ);
+        double dWallR_mu = 550-TMath::Sqrt(recoVtxR2);
+        // take the smallest dwall
+        mu_reco_dwall = dWallR_mu < dWallZ_mu ? dWallR_mu : dWallZ_mu;
+        
+        double mn = 939;
+        double ml = 105;
+        mu_recoKE= recoEnergyHighEMuon[0];
+        double recoE = mu_recoKE + ml;
+        double recoP = TMath::Sqrt(recoE*recoE- ml * ml);
+        double dirZ = recoDirZHighEMuon[0];
+        
+        mu_reco_nu_E = (mn*recoE- ml * ml /2.)/(mn-recoE+recoP* dirZ);
+        
+        double a = 1- dirZ * dirZ;
+        double dirX = recoDirXHighEMuon[0];
+        double dirY = recoDirYHighEMuon[0];
+        double b = vtxX * dirX + vtxY * dirY;
+        double c = recoVtxR2-550*550;
+        double recoToWallR = (TMath::Sqrt(b*b-a*c)-b)/a;
+        double recoToWallZ = 1100 - vtxZ *TMath::Abs(dirZ);
+        // take smallest towall
+        mu_reco_towall = recoToWallR<recoToWallZ ? recoToWallR : recoToWallZ;
+        
+        // e hypothesis --------------
+        vtxX = recoVtxXHighEElectron[0];
+        vtxY = recoVtxYHighEElectron[0];
+        vtxZ = recoVtxZHighEElectron[0];
+        recoVtxR2 = vtxX * vtxX + vtxY * vtxY;
+        double dWallZ_e = 1100-TMath::Abs(vtxZ);
+        double dWallR_e = 550-TMath::Sqrt(recoVtxR2);
+        // take the smallest dwall
+        e_reco_dwall = dWallR_e < dWallZ_e ? dWallR_e : dWallZ_e;
+        
+        mn = 939;
+        ml = 0.511;
+        e_recoKE = recoEnergyHighEElectron[0];
+        recoE = e_recoKE + ml;
+        recoP = TMath::Sqrt(recoE*recoE- ml * ml);
+        dirZ = recoDirZHighEElectron[0];
+        
+        e_reco_nu_E = (mn*recoE- ml * ml /2.)/(mn-recoE+recoP* dirZ);
+        
+        a = 1- dirZ * dirZ;
+        dirX = recoDirXHighEElectron[0];
+        dirY = recoDirYHighEElectron[0];
+        b = vtxX * dirX + vtxY * dirY;
+        c = recoVtxR2-550*550;
+        recoToWallR = (TMath::Sqrt(b*b-a*c)-b)/a;
+        recoToWallZ = 1100 - vtxZ *TMath::Abs(dirZ);
+        // take smallest towall
+        e_reco_towall = recoToWallR<recoToWallZ ? recoToWallR : recoToWallZ;
+      }
+      //  --------------
+     
+      // New method to count up the pi0 in the final state -> weight down events with pi0 as well as by neut code (see below)
+      // not sure how to count pi0 so use 3 checks:
+      int npi0_track = 0;
+      int nneutron_track = 0;
+      lepton_KE = 0;  // also store the lepton KE
       for (int itrk = 0; itrk < ntrks; itrk++) {
-         if (mpid[itrk] == 111) npi0++;           
+         // Find highest KE outgoing charged lepton
+         if (TMath::Abs(mpid[itrk]) == 11 || (TMath::Abs(mpid[itrk]) == 13 && KE[itrk] > lepton_KE)) lepton_KE = KE[itrk];
+         if (mpid[itrk] == 111) npi0_track++;
+         if (mpid[itrk] == 2112) nneutron_track++;
       }
       // loop through SI
+      int npi0_SI = 0;
+      int nneutron_SI = 0;
       for(int ipart = 0; ipart < npart; ++ipart){
-         if (part_pid[ipart] == 111) npi0++;           
+         if (part_pid[ipart] == 111) npi0_SI++;
+         if (part_pid[ipart] == 2112) nneutron_SI++;
       }
       // loop through FI too
-      //cout << "pi0 " << npi0 << " nn " << nneutron;
-      for(int ipart = 0; ipart< NEnvc; ++ipart){
-         if (NEipvc[ipart] == 111) npi0++;           
-         if (NEipvc[ipart] == 2112) nneutron++;        
+      int npi0_FS = 0;
+      int nneutron_FS = 0;
+       for(int ipart = 0; ipart< NEnvc; ++ipart){
+         if (NEipvc[ipart] == 111) npi0_FS++;
+         if (NEipvc[ipart] == 2112) nneutron_FS++;
         
       } 
-      //cout << " pi0 - 2 " << npi0 << " nn - 2" << nneutron << " ";
-      
-      if(((abs(NEneutmode)==31 || abs(NEneutmode)==32 || abs(NEneutmode)==36) || (npi0>0))&& myran<0.88889)continue;
-      //cout << " keep " << endl;
-      
-      double mn = 939;
-      double ml = pid ==13 ? 105 : 0.511;
-      double recoE = recoKE + ml;
-      double recoP = TMath::Sqrt(recoE*recoE- ml * ml);
-      Double_t dirZ = pid==13 ? recoDirZHighEMuon[0] : recoDirZHighEElectron[0];
-      Erec = (mn*recoE- ml * ml /2.)/(mn-recoE+recoP* dirZ);
-      if(Erec > 2500 || Erec < 0) continue;
+      // if((npi0_track+npi0_SI+npi0_FS)>0)std::cout << " pi0: " << npi0_track << ", " << npi0_SI << " " << npi0_FS << std::endl;
+      // need to decide which of these to use but use all pi0s present for the NC weight to be sure
+      npi0 = npi0_FS;
+      nneutron = nneutron_FS;
+     
       Etrue = TMath::Sqrt(NEpvc[0][0]*NEpvc[0][0]+NEpvc[0][1]*NEpvc[0][1]+NEpvc[0][2]*NEpvc[0][2]);
       for(int i=0; i<NEnvc; i++) {
          Abspvc[i] = TMath::Sqrt(NEpvc[i][0]*NEpvc[i][0] + NEpvc[i][1]*NEpvc[i][1] + NEpvc[i][2]*NEpvc[i][2]);
@@ -155,162 +266,89 @@ void MakeSelections::Loop()
          Ibound = 0;
       }
 
-      /*
-      Npvc = ntrks+2;
-      //First element is incoming neutrino
-      Ichvc[0]=0;
-      Ipvc[0]=neutrino_id;
-      double neutrino_p = neutrino_px*neutrino_px+neutrino_py*neutrino_py+neutrino_pz*neutrino_pz;
-      // neutrino_px etc. seem to be just direction not magnitude of momentum, but sometimes not with modulus exactly 1
-      Pvc[0][0]=neutrino_E*neutrino_px/neutrino_p;
-      Pvc[0][1]=neutrino_E*neutrino_py/neutrino_p;
-      Pvc[0][2]=neutrino_E*neutrino_pz/neutrino_p;
-      Abspvc[0] = neutrino_E;
-      //Second element is incoming nucleon
-      //Need to get truth info somehow
-      Ichvc[1]=0;
-      Ipvc[1]=2112;
-      Pvc[1][0]=0;
-      Pvc[1][1]=0;
-      Pvc[1][2]=0;
-      Abspvc[1]=0;
-      //Third element is outgoing lepton
-      int i_lepton=0; while(mpid[i_lepton]<11||mpid[i_lepton]>14) i_lepton++;
-      Ichvc[2]=1;
-      Ipvc[2]=mpid[i_lepton];
-      double m = abs(mpid[i_lepton])==11 ? 0.511 :
-                 abs(mpid[i_lepton]==13) ? 105 : 0;
-      double E = KE[i_lepton]+m;
-      double p = TMath::Sqrt(E*E-m*m);
-      double pp = TMath::Sqrt(px[i_lepton]*px[i_lepton]+py[i_lepton]*py[i_lepton]+pz[i_lepton]*pz[i_lepton]);
-      Pvc[2][0]=p*px[i_lepton]/pp;
-      Pvc[2][1]=p*py[i_lepton]/pp;
-      Pvc[2][2]=p*pz[i_lepton]/pp;
-      Abspvc[2]=p;
-      //Fourth element is outgoing nucleon
-      int i_nucleon =0; while(mpid[i_nucleon]!=2112&&mpid[i_nucleon]!=2212&& i_nucleon <ntrks) i_nucleon++;
-      if(i_nucleon==ntrks){
-         Ichvc[3] = 0;
-         Ipvc[3] = 0;
-         Pvc[3][0] = 0;
-         Pvc[3][1] = 0;
-         Pvc[3][2] = 0;
-      }else {
-         Ichvc[3] = 1;
-         Ipvc[3] = mpid[i_nucleon];
-         m = abs(mpid[i_nucleon]==2212) ? 938 :
-             abs(mpid[i_nucleon]==2112) ? 940 : 0;
-         E = KE[i_nucleon]+m;
-         p = TMath::Sqrt(E*E-m*m);
-         pp = TMath::Sqrt(px[i_lepton]*px[i_lepton]+py[i_lepton]*py[i_lepton]+pz[i_lepton]*pz[i_lepton]);
-         Pvc[3][0] = p*px[i_nucleon]/pp;
-         Pvc[3][1] = p*py[i_nucleon]/pp;
-         Pvc[3][2] = p*pz[i_nucleon]/pp;
-         Abspvc[3] = p;
-      }
-      //Remaining of particles
-      int i=4;
-      for(int i_track =0; i_track <Npvc; i_track++){
-         if(i_track==i_nucleon||i_track==i_lepton) continue;
-         Ichvc[i] = 1;
-         Ipvc[i] = mpid[i_track];
-         m = abs(mpid[i_track])==11 ? 0.511 :
-                    abs(mpid[i_track]==13) ? 105 :
-                    abs(mpid[i_track]==111) ? 135 :
-                    abs(mpid[i_track]==211) ? 140 :
-                    abs(mpid[i_track]==2212) ? 938 :
-                    abs(mpid[i_track]==2112) ? 940 :
-                    abs(mpid[i_track]==321) ? 494 :
-                    abs(mpid[i_track]==311) ? 498 :
-                    abs(mpid[i_track]==310) ? 498 :
-                    abs(mpid[i_track]==130) ? 498 :
-                    abs(mpid[i_track]==221) ? 548 :
-                    abs(mpid[i_track]==3122) ? 1116 : 0;
-         E = KE[i_track]+m;
-         p = TMath::Sqrt(E*E-m*m);
-         pp = TMath::Sqrt(px[i_lepton]*px[i_lepton]+py[i_lepton]*py[i_lepton]+pz[i_lepton]*pz[i_lepton]);
-         Pvc[i][0] = p*px[i_track]/pp;
-         Pvc[i][1] = p*py[i_track]/pp;
-         Pvc[i][2] = p*pz[i_track]/pp;
-         Abspvc[i] = p;
-         i++;
-      }
-       */
-      //std::cout << jentry << " entry of type " << NEipvc[0] << std::endl;
-      double a = 1- dirZ * dirZ;
-      Double_t dirX = pid==13 ? recoDirXHighEMuon[0] : recoDirXHighEElectron[0];
-      Double_t dirY = pid==13 ? recoDirYHighEMuon[0] : recoDirYHighEElectron[0];
-      double b = vtxX * dirX + vtxY * dirY;
-      double c = recoVtxR2-550*550;
-      double recoToWallR = (TMath::Sqrt(b*b-a*c)-b)/a;
-      double recoToWallZ = 1100 - vtxZ *TMath::Abs(dirZ);
-      double recoToWall = recoToWallR<recoToWallZ ? recoToWallR : recoToWallZ;
-      if(recoToWall<200) continue;
       bool neutron_tag = false;
-/*      for(int iSubevent = 0; iSubevent< nSubevents && !neutron_tag; iSubevent++){
-         if(ring[iSubevent]==0 && recoEnergy[iSubevent]>2 && recoEnergy[iSubevent]<10
-            && recoTime[iSubevent]>1000 && recoTime[iSubevent]<100000)
-            neutron_tag = true;
-      }
-*/
       ntrueNcap = nCaptures;  // Get from original file
-      ntrueNcap = nneutrons;  // Counted from simulation secondary info above
-      int recoMichels = 0;
+      ntrueNeutrons = nneutrons;  // Counted from simulation secondary info above
+      recoMichels = 0;
       recoNeutrons = 0;
       for(int iSubevent = 0; iSubevent < nSubevents; iSubevent ++) {
             if(recoTime[iSubevent] > 135 && recoTime[iSubevent]<8000 && recoEnergy[iSubevent]>15.){
               recoMichels++;
             }
             if (recoEnergy[iSubevent] > 2 && recoEnergy[iSubevent] < 10 && recoTime[iSubevent] > 1000 && recoTime[iSubevent] < 100000) {
-//            if (recoEnergy[iSubevent] > 2 && recoEnergy[iSubevent] < 10 && recoTime[iSubevent] > 1000 && recoTime[iSubevent] < 100000) {
               neutron_tag = true;
               recoNeutrons++;
            }
       }
-      // Add extra cut on muon PID > 0
-      bool muLike = pid==13 && recoKE > 200 && recoKE < 2000 && Erec < 1250 && recoMichels <= 1 && (recoLnLHighEMuon[0] - recoLnLHighEElectron[0])>0;
-      bool eLike = pid==11  && recoMichels == 0;
+      // put all events in the ntuple
+      if(outputntuple)ntuple->Fill();
+     
+      // Weight down the NCpi0 here:
+      float myran = myrand.Rndm();
+      if(((abs(NEneutmode)==31 || abs(NEneutmode)==32 || abs(NEneutmode)==36) || ((npi0_FS+npi0_SI+npi0_track)>0))&& myran<0.88889)continue;
+     
+// dwall
+// towall
+// 1ring
+// PID
+// michels
+// energy
+// NCpiweight
+// N followers
+
+      // Now we choose what to put in each tree for Valor
+      bool eLike = e_reco_dwall>200 && e_reco_towall>200 && (isHighE0 && recoNRings[0]==1) && ((recoLnLHighEMuon[0] - recoLnLHighEElectron[0]) <-400) && recoMichels==0 && e_reco_nu_E>0&&e_reco_nu_E<2500&&e_recoKE>100&&e_recoKE<2500 ;
+
+      bool muLike =  mu_reco_dwall>200 && mu_reco_towall>200 && (isHighE0 && recoNRings[0]==1) && ((recoLnLHighEMuon[0] - recoLnLHighEElectron[0]) > 0)&& recoMichels<=1  && mu_reco_nu_E>0&&mu_reco_nu_E<1250&&mu_recoKE>200&&mu_recoKE<2000;
+
+      if(eLike && muLike) std::cout << " Both???" << std::endl; // This shouldn't happen!
+//      if(!eLike && !muLike) std::cout << " Neither???" << std::endl;  // This can happen
+     
       if(neutron_tag) {
          if (muLike) {
-            if (NEipvc[0] == 14)
+             Erec = mu_reco_nu_E;
+            if (neutrino_id == 14)
                numu_mulike_ntag->Fill();
-            else if (NEipvc[0] == -14)
+            else if (neutrino_id == -14)
                numubar_mulike_ntag->Fill();
-            else if (NEipvc[0] == 12)
+            else if (neutrino_id == 12)
                nue_mulike_ntag->Fill();
-            else if (NEipvc[0] == -12)
+            else if (neutrino_id == -12)
                nuebar_mulike_ntag->Fill();
          }
-         else if (eLike) {
-            if (NEipvc[0] == 14)
+         /*else */if (eLike) {
+            Erec = e_reco_nu_E;
+            if (neutrino_id == 14)
                numu_elike_ntag->Fill();
-            else if (NEipvc[0] == -14)
+            else if (neutrino_id == -14)
                numubar_elike_ntag->Fill();
-            else if (NEipvc[0] == 12)
+            else if (neutrino_id == 12)
                nue_elike_ntag->Fill();
-            else if (NEipvc[0] == -12)
+            else if (neutrino_id == -12)
                nuebar_elike_ntag->Fill();
          }
       }
       else {
          if (muLike) {
-            if (NEipvc[0] == 14)
+            Erec = mu_reco_nu_E;
+            if (neutrino_id == 14)
                numu_mulike_nontag->Fill();
-            else if (NEipvc[0] == -14)
+            else if (neutrino_id == -14)
                numubar_mulike_nontag->Fill();
-            else if (NEipvc[0] == 12)
+            else if (neutrino_id == 12)
                nue_mulike_nontag->Fill();
-            else if (NEipvc[0] == -12)
+            else if (neutrino_id == -12)
                nuebar_mulike_nontag->Fill();
          }
-         else if (eLike) {
-            if (NEipvc[0] == 14)
+         /*else */if (eLike) {
+            Erec = e_reco_nu_E;
+            if (neutrino_id == 14)
                numu_elike_nontag->Fill();
-            else if (NEipvc[0] == -14)
+            else if (neutrino_id == -14)
                numubar_elike_nontag->Fill();
-            else if (NEipvc[0] == 12)
+            else if (neutrino_id == 12)
                nue_elike_nontag->Fill();
-            else if (NEipvc[0] == -12)
+            else if (neutrino_id == -12)
                nuebar_elike_nontag->Fill();
          }
       }
@@ -331,10 +369,10 @@ void MakeSelections::Loop()
    numubar_elike_nontag->Write();
    nue_elike_nontag->Write();
    nuebar_elike_nontag->Write();
-   out->Close();
+   if(outputntuple)ntuple->Write();
 }
 
-TTree *MakeSelections::MakeNtuple(TString name, float Abspvc[100], int &Numatom, double &Erec, double &Etrue, Float_t pnu[100],
+TTree *MakeSelectionsAndRoot::MakeNtuple(TString name, float Abspvc[100], int &Numatom, double &Erec, double &Etrue, Float_t pnu[100],
                                   Float_t dirnu[100][3], Int_t &Numbndn, Int_t &Numbndp, Int_t &Numfrep, Int_t &Ibound, Int_t &flavEvents, Int_t &nRecoNeutrons, Int_t &ntrueNcap, Int_t &ntrueNeutrons) {
    TTree * ntuple = new TTree(name, name);
    ntuple->Branch("evt",&evt,"evt/I");

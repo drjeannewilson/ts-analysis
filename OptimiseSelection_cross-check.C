@@ -16,6 +16,9 @@ void OptimiseSelection(bool fhc = true) {
   // This is the name of the file created by the selections.C/.h code
   TFile * f= new TFile("selections_androot_tagged_FHC.root", "READ");
   TTree *selection = (TTree *) f->Get("AllEvents");
+//  TFile * f= new TFile("selection_test_20160128_53815.root", "READ");
+//  TFile * f= new TFile("selection_test_20160322_220412.root", "READ");
+//  TTree *selection = (TTree *) f->Get("selection");
 
   TCut R1 = "isHighE&&(ring2PEs/ring1PEs)<0.09";
   TCut mulike = "recoPIDLikelihood>0";
@@ -54,9 +57,9 @@ void OptimiseSelection(bool fhc = true) {
 
   TCut weightFHC = "(30.7419*(neutrino_id==14)+0.584919*(neutrino_id==12)+0.875846*(neutrino_id==-14)+0.0590713*(neutrino_id==-12))";
   TCut weightRHC = "(3.90061*(neutrino_id==14)+0.172118*(neutrino_id==12)+7.6609*(neutrino_id==-14)+0.147396*(neutrino_id==-12))";
-   TCut weight = weightFHC;
-// Use this option for full weighting, but turn it off for cross check against Valor numbers
-//  TCut weight = "1";
+ // Use this option for full weighting, but turn it off for cross check against Valor numbers
+ // TCut weight = weightFHC;
+  TCut weight = "1";
   
   if(!fhc){
     truemu = "neutrino_id==-14";
@@ -69,25 +72,27 @@ void OptimiseSelection(bool fhc = true) {
 //  Use these options in comparison to the MakeSelections code so that we can see the output for a particular neutrino type only
 //  weight = "1*neutrino_id==14+0*(neutrino_id!=14)";
 //  weight = "1*neutrino_id==12+0*(neutrino_id!=12)";
+//  weight = "1*neutrino_id==-14+0*(neutrino_id!=-14)";
+  weight = "1*neutrino_id==-12+0*(neutrino_id!=-12)";
 
   // Plot the neut IDs for the selections to check what is getting through
   TCanvas *Cneut = new TCanvas("Cneut");
   Cneut->Divide(1,2);
   Cneut->cd(1);
   gPad->SetLogy();
-  selection->Draw("interaction_mode>>neut_esel",weight*weightNCpi*(R1&&elike&&nodecay&&eEnergyCut&&edwallcut&&etowallcut));
+  selection->Draw("interaction_mode>>neut_esel",weight&&weightNCpi&&(R1&&elike&&nodecay&&eEnergyCut&&edwallcut&&etowallcut));
   Cneut->cd(2);
   gPad->SetLogy();
-  selection->Draw("interaction_mode>>neut_musel",weight*weightNCpi*(R1&&mulike&&onedecay&&muEnergyCut&&mudwallcut&&mutowallcut));
+  selection->Draw("interaction_mode>>neut_musel",weight&&weightNCpi&&(R1&&mulike&&onedecay&&muEnergyCut&&mudwallcut&&mutowallcut));
   Cneut->Print("Cneut.C");
   TCanvas *Cneut2 = new TCanvas("Cneut2");
   Cneut2->Divide(1,2);
   Cneut2->cd(1);
   gPad->SetLogy();
-  selection->Draw("interaction_mode>>neut_esel2",weight*weightNCpi*(R1&&elike&&nodecay&&eEnergyCut&&edwallcut&&etowallcut&&nonfoll));
+  selection->Draw("interaction_mode>>neut_esel2",weight&&weightNCpi&&(R1&&elike&&nodecay&&eEnergyCut&&edwallcut&&etowallcut&&nonfoll));
   Cneut2->cd(2);
   gPad->SetLogy();
-  selection->Draw("interaction_mode>>neut_musel2",weight*weightNCpi*(R1&&mulike&&onedecay&&muEnergyCut&&mudwallcut&&mutowallcut&&nonfoll));
+  selection->Draw("interaction_mode>>neut_musel2",weight&&weightNCpi&&(R1&&mulike&&onedecay&&muEnergyCut&&mudwallcut&&mutowallcut&&nonfoll));
   Cneut2->Print("Cneut2.C");
   
   // Make selections here - apply cuts one by one so we can see reduction effect
@@ -100,14 +105,14 @@ void OptimiseSelection(bool fhc = true) {
   float NInCuts_e1R_CCInc[ncuts],NInCuts_e1R_CCInc_int[ncuts];
   // note evaluating the number of events this way doesn't include the weights:
   NInCuts_e1R_all[0] = selection->Draw("e_recoKE>>InCuts_e_all0",weight);
-  NInCuts_e1R_all[1] = selection->Draw("e_recoKE>>InCuts_e_all1",weight*(edwallcut));
-  NInCuts_e1R_all[2] = selection->Draw("e_recoKE>>InCuts_e_all2",weight*(edwallcut&&etowallcut));
-  NInCuts_e1R_all[3] = selection->Draw("e_recoKE>>InCuts_e_all3",weight*(edwallcut&&etowallcut&&R1));
-  NInCuts_e1R_all[4] = selection->Draw("e_recoKE>>InCuts_e_all4",weight*(edwallcut&&etowallcut&&R1&&elike));
-  NInCuts_e1R_all[5] = selection->Draw("e_recoKE>>InCuts_e_all5",weight*(edwallcut&&etowallcut&&R1&&elike&&nodecay));
-  NInCuts_e1R_all[6] = selection->Draw("e_recoKE>>InCuts_e_all6",weight*(edwallcut&&etowallcut&&R1&&elike&&nodecay&&eEnergyCut));
-  NInCuts_e1R_all[7] = selection->Draw("e_recoKE>>InCuts_e_all7",weight*weightNCpi*(R1&&elike&&nodecay&&eEnergyCut&&edwallcut&&etowallcut));
-  NInCuts_e1R_all[8] = selection->Draw("e_recoKE>>InCuts_e_all8",weight*weightNCpi*(R1&&elike&&nodecay&&eEnergyCut&&edwallcut&&etowallcut&&nonfoll));
+  NInCuts_e1R_all[1] = selection->Draw("e_recoKE>>InCuts_e_all1",weight&&(edwallcut));
+  NInCuts_e1R_all[2] = selection->Draw("e_recoKE>>InCuts_e_all2",weight&&(edwallcut&&etowallcut));
+  NInCuts_e1R_all[3] = selection->Draw("e_recoKE>>InCuts_e_all3",weight&&(edwallcut&&etowallcut&&R1));
+  NInCuts_e1R_all[4] = selection->Draw("e_recoKE>>InCuts_e_all4",weight&&(edwallcut&&etowallcut&&R1&&elike));
+  NInCuts_e1R_all[5] = selection->Draw("e_recoKE>>InCuts_e_all5",weight&&(edwallcut&&etowallcut&&R1&&elike&&nodecay));
+  NInCuts_e1R_all[6] = selection->Draw("e_recoKE>>InCuts_e_all6",weight&&(edwallcut&&etowallcut&&R1&&elike&&nodecay&&eEnergyCut));
+  NInCuts_e1R_all[7] = selection->Draw("e_recoKE>>InCuts_e_all7",weight&&(weightNCpi&&R1&&elike&&nodecay&&eEnergyCut&&edwallcut&&etowallcut));
+  NInCuts_e1R_all[8] = selection->Draw("e_recoKE>>InCuts_e_all8",weight&&(weightNCpi&&R1&&elike&&nodecay&&eEnergyCut&&edwallcut&&etowallcut&&nonfoll));
   // so use this method and integrate instead for weighted numbers
   NInCuts_e1R_all_int[0] = InCuts_e_all0->Integral();
   NInCuts_e1R_all_int[1] = InCuts_e_all1->Integral();
@@ -121,15 +126,15 @@ void OptimiseSelection(bool fhc = true) {
   
   
   // Now do same for true CCQE
-  NInCuts_e1R_CCQE[0] = selection->Draw("e_recoKE>>InCuts_e_CCQE0",weight*(truee&&trueCCQE));
-  NInCuts_e1R_CCQE[1] = selection->Draw("e_recoKE>>InCuts_e_CCQE1",weight*(edwallcut&&truee&&trueCCQE));
-  NInCuts_e1R_CCQE[2] = selection->Draw("e_recoKE>>InCuts_e_CCQE2",weight*(edwallcut&&etowallcut&&truee&&trueCCQE));
-  NInCuts_e1R_CCQE[3] = selection->Draw("e_recoKE>>InCuts_e_CCQE3",weight*(edwallcut&&etowallcut&&R1&&(truee&&trueCCQE)));
-  NInCuts_e1R_CCQE[4] = selection->Draw("e_recoKE>>InCuts_e_CCQE4",weight*(edwallcut&&etowallcut&&R1&&elike&&(truee&&trueCCQE)));
-  NInCuts_e1R_CCQE[5] = selection->Draw("e_recoKE>>InCuts_e_CCQE5",weight*(edwallcut&&etowallcut&&R1&&elike&&nodecay&&(truee&&trueCCQE)));
-  NInCuts_e1R_CCQE[6] = selection->Draw("e_recoKE>>InCuts_e_CCQE6",weight*(edwallcut&&etowallcut&&R1&&elike&&nodecay&&eEnergyCut&&(truee&&trueCCQE)));
-  NInCuts_e1R_CCQE[7] = selection->Draw("e_recoKE>>InCuts_e_CCQE7",weight*weightNCpi*(R1&&elike&&nodecay&&eEnergyCut&&edwallcut&&etowallcut&&(truee&&trueCCQE)));
-  NInCuts_e1R_CCQE[8] = selection->Draw("e_recoKE>>InCuts_e_CCQE8",weight*weightNCpi*(R1&&elike&&nodecay&&eEnergyCut&&edwallcut&&etowallcut&&nonfoll&&(truee&&trueCCQE)));
+  NInCuts_e1R_CCQE[0] = selection->Draw("e_recoKE>>InCuts_e_CCQE0",weight&&(truee&&trueCCQE));
+  NInCuts_e1R_CCQE[1] = selection->Draw("e_recoKE>>InCuts_e_CCQE1",weight&&(edwallcut&&truee&&trueCCQE));
+  NInCuts_e1R_CCQE[2] = selection->Draw("e_recoKE>>InCuts_e_CCQE2",weight&&(edwallcut&&etowallcut&&truee&&trueCCQE));
+  NInCuts_e1R_CCQE[3] = selection->Draw("e_recoKE>>InCuts_e_CCQE3",weight&&(edwallcut&&etowallcut&&R1&&(truee&&trueCCQE)));
+  NInCuts_e1R_CCQE[4] = selection->Draw("e_recoKE>>InCuts_e_CCQE4",weight&&(edwallcut&&etowallcut&&R1&&elike&&(truee&&trueCCQE)));
+  NInCuts_e1R_CCQE[5] = selection->Draw("e_recoKE>>InCuts_e_CCQE5",weight&&(edwallcut&&etowallcut&&R1&&elike&&nodecay&&(truee&&trueCCQE)));
+  NInCuts_e1R_CCQE[6] = selection->Draw("e_recoKE>>InCuts_e_CCQE6",weight&&(edwallcut&&etowallcut&&R1&&elike&&nodecay&&eEnergyCut&&(truee&&trueCCQE)));
+  NInCuts_e1R_CCQE[7] = selection->Draw("e_recoKE>>InCuts_e_CCQE7",weight&&(weightNCpi&&R1&&elike&&nodecay&&eEnergyCut&&edwallcut&&etowallcut&&(truee&&trueCCQE)));
+  NInCuts_e1R_CCQE[8] = selection->Draw("e_recoKE>>InCuts_e_CCQE8",weight&&(weightNCpi&&R1&&elike&&nodecay&&eEnergyCut&&edwallcut&&etowallcut&&nonfoll&&(truee&&trueCCQE)));
   NInCuts_e1R_CCQE_int[0] = InCuts_e_CCQE0->Integral();
   NInCuts_e1R_CCQE_int[1] = InCuts_e_CCQE1->Integral();
   NInCuts_e1R_CCQE_int[2] = InCuts_e_CCQE2->Integral();
@@ -141,15 +146,15 @@ void OptimiseSelection(bool fhc = true) {
   NInCuts_e1R_CCQE_int[8] = InCuts_e_CCQE8->Integral();
   
   // And for true CCInc
-  NInCuts_e1R_CCInc[0] = selection->Draw("e_recoKE>>InCuts_e_CCInc0",weight*(truee&&trueCCinc));
-  NInCuts_e1R_CCInc[1] = selection->Draw("e_recoKE>>InCuts_e_CCInc1",weight*(edwallcut&&truee&&trueCCinc));
-  NInCuts_e1R_CCInc[2] = selection->Draw("e_recoKE>>InCuts_e_CCInc2",weight*(edwallcut&&etowallcut&&truee&&trueCCinc));
-  NInCuts_e1R_CCInc[3] = selection->Draw("e_recoKE>>InCuts_e_CCInc3",weight*(edwallcut&&etowallcut&&R1&&(truee&&trueCCinc)));
-  NInCuts_e1R_CCInc[4] = selection->Draw("e_recoKE>>InCuts_e_CCInc4",weight*(edwallcut&&etowallcut&&R1&&elike&&(truee&&trueCCinc)));
-  NInCuts_e1R_CCInc[5] = selection->Draw("e_recoKE>>InCuts_e_CCInc5",weight*(edwallcut&&etowallcut&&R1&&elike&&nodecay&&(truee&&trueCCinc)));
-  NInCuts_e1R_CCInc[6] = selection->Draw("e_recoKE>>InCuts_e_CCInc6",weight*(edwallcut&&etowallcut&&R1&&elike&&nodecay&&eEnergyCut&&(truee&&trueCCinc)));
-  NInCuts_e1R_CCInc[7] = selection->Draw("e_recoKE>>InCuts_e_CCInc7",weight*weightNCpi*(R1&&elike&&nodecay&&eEnergyCut&&edwallcut&&etowallcut&&(truee&&trueCCinc)));
-  NInCuts_e1R_CCInc[8] = selection->Draw("e_recoKE>>InCuts_e_CCInc8",weight*weightNCpi*(R1&&elike&&nodecay&&eEnergyCut&&edwallcut&&etowallcut&&nonfoll&&(truee&&trueCCinc)));
+  NInCuts_e1R_CCInc[0] = selection->Draw("e_recoKE>>InCuts_e_CCInc0",weight&&(truee&&trueCCinc));
+  NInCuts_e1R_CCInc[1] = selection->Draw("e_recoKE>>InCuts_e_CCInc1",weight&&(edwallcut&&truee&&trueCCinc));
+  NInCuts_e1R_CCInc[2] = selection->Draw("e_recoKE>>InCuts_e_CCInc2",weight&&(edwallcut&&etowallcut&&truee&&trueCCinc));
+  NInCuts_e1R_CCInc[3] = selection->Draw("e_recoKE>>InCuts_e_CCInc3",weight&&(edwallcut&&etowallcut&&R1&&(truee&&trueCCinc)));
+  NInCuts_e1R_CCInc[4] = selection->Draw("e_recoKE>>InCuts_e_CCInc4",weight&&(edwallcut&&etowallcut&&R1&&elike&&(truee&&trueCCinc)));
+  NInCuts_e1R_CCInc[5] = selection->Draw("e_recoKE>>InCuts_e_CCInc5",weight&&(edwallcut&&etowallcut&&R1&&elike&&nodecay&&(truee&&trueCCinc)));
+  NInCuts_e1R_CCInc[6] = selection->Draw("e_recoKE>>InCuts_e_CCInc6",weight&&(edwallcut&&etowallcut&&R1&&elike&&nodecay&&eEnergyCut&&(truee&&trueCCinc)));
+  NInCuts_e1R_CCInc[7] = selection->Draw("e_recoKE>>InCuts_e_CCInc7",weight&&(weightNCpi&&R1&&elike&&nodecay&&eEnergyCut&&edwallcut&&etowallcut&&(truee&&trueCCinc)));
+  NInCuts_e1R_CCInc[8] = selection->Draw("e_recoKE>>InCuts_e_CCInc8",weight&&(weightNCpi&&R1&&elike&&nodecay&&eEnergyCut&&edwallcut&&etowallcut&&nonfoll&&(truee&&trueCCinc)));
   NInCuts_e1R_CCInc_int[0] = InCuts_e_CCInc0->Integral();
   NInCuts_e1R_CCInc_int[1] = InCuts_e_CCInc1->Integral();
   NInCuts_e1R_CCInc_int[2] = InCuts_e_CCInc2->Integral();
@@ -230,14 +235,14 @@ void OptimiseSelection(bool fhc = true) {
   float NInCuts_mu1R_CCQE[ncuts],NInCuts_mu1R_CCQE_int[ncuts];
   float NInCuts_mu1R_CCInc[ncuts],NInCuts_mu1R_CCInc_int[ncuts];
   NInCuts_mu1R_all[0] = selection->Draw("mu_recoKE>>InCuts_mu_all0",weight);
-  NInCuts_mu1R_all[1] = selection->Draw("mu_recoKE>>InCuts_mu_all1",weight*(mudwallcut));
-  NInCuts_mu1R_all[2] = selection->Draw("mu_recoKE>>InCuts_mu_all2",weight*(mudwallcut&&mutowallcut));
-  NInCuts_mu1R_all[3] = selection->Draw("mu_recoKE>>InCuts_mu_all3",weight*(mudwallcut&&mutowallcut&&R1));
-  NInCuts_mu1R_all[4] = selection->Draw("mu_recoKE>>InCuts_mu_all4",weight*(mudwallcut&&mutowallcut&&R1&&mulike));
-  NInCuts_mu1R_all[5] = selection->Draw("mu_recoKE>>InCuts_mu_all5",weight*(mudwallcut&&mutowallcut&&R1&&mulike&&onedecay));
-  NInCuts_mu1R_all[6] = selection->Draw("mu_recoKE>>InCuts_mu_all6",weight*(mudwallcut&&mutowallcut&&R1&&mulike&&onedecay&&muEnergyCut));
-  NInCuts_mu1R_all[7] = selection->Draw("mu_recoKE>>InCuts_mu_all7",weight*weightNCpi*(R1&&mulike&&onedecay&&muEnergyCut&&mudwallcut&&mutowallcut));
-  NInCuts_mu1R_all[8] = selection->Draw("mu_recoKE>>InCuts_mu_all8",weight*weightNCpi*(R1&&mulike&&onedecay&&muEnergyCut&&mudwallcut&&nonfoll&&mutowallcut));
+  NInCuts_mu1R_all[1] = selection->Draw("mu_recoKE>>InCuts_mu_all1",weight&&(mudwallcut));
+  NInCuts_mu1R_all[2] = selection->Draw("mu_recoKE>>InCuts_mu_all2",weight&&(mudwallcut&&mutowallcut));
+  NInCuts_mu1R_all[3] = selection->Draw("mu_recoKE>>InCuts_mu_all3",weight&&(mudwallcut&&mutowallcut&&R1));
+  NInCuts_mu1R_all[4] = selection->Draw("mu_recoKE>>InCuts_mu_all4",weight&&(mudwallcut&&mutowallcut&&R1&&mulike));
+  NInCuts_mu1R_all[5] = selection->Draw("mu_recoKE>>InCuts_mu_all5",weight&&(mudwallcut&&mutowallcut&&R1&&mulike&&onedecay));
+  NInCuts_mu1R_all[6] = selection->Draw("mu_recoKE>>InCuts_mu_all6",weight&&(mudwallcut&&mutowallcut&&R1&&mulike&&onedecay&&muEnergyCut));
+  NInCuts_mu1R_all[7] = selection->Draw("mu_recoKE>>InCuts_mu_all7",weight&&(weightNCpi&&R1&&mulike&&onedecay&&muEnergyCut&&mudwallcut&&mutowallcut));
+  NInCuts_mu1R_all[8] = selection->Draw("mu_recoKE>>InCuts_mu_all8",weight&&(weightNCpi&&R1&&mulike&&onedecay&&muEnergyCut&&mudwallcut&&nonfoll&&mutowallcut));
   NInCuts_mu1R_all_int[0] = InCuts_mu_all0->Integral();
   NInCuts_mu1R_all_int[1] = InCuts_mu_all1->Integral();
   NInCuts_mu1R_all_int[2] = InCuts_mu_all2->Integral();
@@ -248,15 +253,15 @@ void OptimiseSelection(bool fhc = true) {
   NInCuts_mu1R_all_int[7] = InCuts_mu_all7->Integral();
   NInCuts_mu1R_all_int[8] = InCuts_mu_all8->Integral();
   
-  NInCuts_mu1R_CCQE[0] = selection->Draw("mu_recoKE>>InCuts_mu_CCQE0",weight*(truemu&&trueCCQE));
-  NInCuts_mu1R_CCQE[1] = selection->Draw("mu_recoKE>>InCuts_mu_CCQE1",weight*(mudwallcut&&truemu&&trueCCQE));
-  NInCuts_mu1R_CCQE[2] = selection->Draw("mu_recoKE>>InCuts_mu_CCQE2",weight*(mudwallcut&&mutowallcut&&truemu&&trueCCQE));
-  NInCuts_mu1R_CCQE[3] = selection->Draw("mu_recoKE>>InCuts_mu_CCQE3",weight*(mudwallcut&&mutowallcut&&R1&&(truemu&&trueCCQE)));
-  NInCuts_mu1R_CCQE[4] = selection->Draw("mu_recoKE>>InCuts_mu_CCQE4",weight*(mudwallcut&&mutowallcut&&R1&&mulike&&(truemu&&trueCCQE)));
-  NInCuts_mu1R_CCQE[5] = selection->Draw("mu_recoKE>>InCuts_mu_CCQE5",weight*(mudwallcut&&mutowallcut&&R1&&mulike&&onedecay&&(truemu&&trueCCQE)));
-  NInCuts_mu1R_CCQE[6] = selection->Draw("mu_recoKE>>InCuts_mu_CCQE6",weight*(mudwallcut&&mutowallcut&&R1&&mulike&&onedecay&&muEnergyCut&&(truemu&&trueCCQE)));
-  NInCuts_mu1R_CCQE[7] = selection->Draw("mu_recoKE>>InCuts_mu_CCQE7",weight*weightNCpi*(R1&&mulike&&onedecay&&muEnergyCut&&mudwallcut&&mutowallcut&&(truemu&&trueCCQE)));
-  NInCuts_mu1R_CCQE[8] = selection->Draw("mu_recoKE>>InCuts_mu_CCQE8",weight*weightNCpi*(R1&&mulike&&onedecay&&muEnergyCut&&mudwallcut&&mutowallcut&&nonfoll&&(truemu&&trueCCQE)));
+  NInCuts_mu1R_CCQE[0] = selection->Draw("mu_recoKE>>InCuts_mu_CCQE0",weight&&(truemu&&trueCCQE));
+  NInCuts_mu1R_CCQE[1] = selection->Draw("mu_recoKE>>InCuts_mu_CCQE1",weight&&(mudwallcut&&truemu&&trueCCQE));
+  NInCuts_mu1R_CCQE[2] = selection->Draw("mu_recoKE>>InCuts_mu_CCQE2",weight&&(mudwallcut&&mutowallcut&&truemu&&trueCCQE));
+  NInCuts_mu1R_CCQE[3] = selection->Draw("mu_recoKE>>InCuts_mu_CCQE3",weight&&(mudwallcut&&mutowallcut&&R1&&(truemu&&trueCCQE)));
+  NInCuts_mu1R_CCQE[4] = selection->Draw("mu_recoKE>>InCuts_mu_CCQE4",weight&&(mudwallcut&&mutowallcut&&R1&&mulike&&(truemu&&trueCCQE)));
+  NInCuts_mu1R_CCQE[5] = selection->Draw("mu_recoKE>>InCuts_mu_CCQE5",weight&&(mudwallcut&&mutowallcut&&R1&&mulike&&onedecay&&(truemu&&trueCCQE)));
+  NInCuts_mu1R_CCQE[6] = selection->Draw("mu_recoKE>>InCuts_mu_CCQE6",weight&&(mudwallcut&&mutowallcut&&R1&&mulike&&onedecay&&muEnergyCut&&(truemu&&trueCCQE)));
+  NInCuts_mu1R_CCQE[7] = selection->Draw("mu_recoKE>>InCuts_mu_CCQE7",weight&&(weightNCpi&&R1&&mulike&&onedecay&&muEnergyCut&&mudwallcut&&mutowallcut&&(truemu&&trueCCQE)));
+  NInCuts_mu1R_CCQE[8] = selection->Draw("mu_recoKE>>InCuts_mu_CCQE8",weight&&(weightNCpi&&R1&&mulike&&onedecay&&muEnergyCut&&mudwallcut&&mutowallcut&&nonfoll&&(truemu&&trueCCQE)));
   NInCuts_mu1R_CCQE_int[0] = InCuts_mu_CCQE0->Integral();
   NInCuts_mu1R_CCQE_int[1] = InCuts_mu_CCQE1->Integral();
   NInCuts_mu1R_CCQE_int[2] = InCuts_mu_CCQE2->Integral();
@@ -267,15 +272,15 @@ void OptimiseSelection(bool fhc = true) {
   NInCuts_mu1R_CCQE_int[7] = InCuts_mu_CCQE7->Integral();
   NInCuts_mu1R_CCQE_int[8] = InCuts_mu_CCQE8->Integral();
   
-  NInCuts_mu1R_CCInc[0] = selection->Draw("mu_recoKE>>InCuts_mu_CCInc0",weight*(truemu&&trueCCinc));
-  NInCuts_mu1R_CCInc[1] = selection->Draw("mu_recoKE>>InCuts_mu_CCInc1",weight*(mudwallcut&&mutowallcut&&trueCCinc));
-  NInCuts_mu1R_CCInc[2] = selection->Draw("mu_recoKE>>InCuts_mu_CCInc2",weight*(mudwallcut&&mutowallcut&&truemu&&trueCCinc));
-  NInCuts_mu1R_CCInc[3] = selection->Draw("mu_recoKE>>InCuts_mu_CCInc3",weight*(mudwallcut&&mutowallcut&&R1&&(truemu&&trueCCinc)));
-  NInCuts_mu1R_CCInc[4] = selection->Draw("mu_recoKE>>InCuts_mu_CCInc4",weight*(mudwallcut&&mutowallcut&&R1&&mulike&&(truemu&&trueCCinc)));
-  NInCuts_mu1R_CCInc[5] = selection->Draw("mu_recoKE>>InCuts_mu_CCInc5",weight*(mudwallcut&&mutowallcut&&R1&&mulike&&onedecay&&(truemu&&trueCCinc)));
-  NInCuts_mu1R_CCInc[6] = selection->Draw("mu_recoKE>>InCuts_mu_CCInc6",weight*(mudwallcut&&mutowallcut&&R1&&mulike&&onedecay&&muEnergyCut&&(truemu&&trueCCinc)));
-  NInCuts_mu1R_CCInc[7] = selection->Draw("mu_recoKE>>InCuts_mu_CCInc7",weight*weightNCpi*(R1&&mulike&&onedecay&&muEnergyCut&&mudwallcut&&mutowallcut&&(truemu&&trueCCinc)));
-  NInCuts_mu1R_CCInc[8] = selection->Draw("mu_recoKE>>InCuts_mu_CCInc8",weight*weightNCpi*(R1&&mulike&&onedecay&&muEnergyCut&&mudwallcut&&mutowallcut&&nonfoll&&(truemu&&trueCCinc)));
+  NInCuts_mu1R_CCInc[0] = selection->Draw("mu_recoKE>>InCuts_mu_CCInc0",weight&&(truemu&&trueCCinc));
+  NInCuts_mu1R_CCInc[1] = selection->Draw("mu_recoKE>>InCuts_mu_CCInc1",weight&&(mudwallcut&&mutowallcut&&trueCCinc));
+  NInCuts_mu1R_CCInc[2] = selection->Draw("mu_recoKE>>InCuts_mu_CCInc2",weight&&(mudwallcut&&mutowallcut&&truemu&&trueCCinc));
+  NInCuts_mu1R_CCInc[3] = selection->Draw("mu_recoKE>>InCuts_mu_CCInc3",weight&&(mudwallcut&&mutowallcut&&R1&&(truemu&&trueCCinc)));
+  NInCuts_mu1R_CCInc[4] = selection->Draw("mu_recoKE>>InCuts_mu_CCInc4",weight&&(mudwallcut&&mutowallcut&&R1&&mulike&&(truemu&&trueCCinc)));
+  NInCuts_mu1R_CCInc[5] = selection->Draw("mu_recoKE>>InCuts_mu_CCInc5",weight&&(mudwallcut&&mutowallcut&&R1&&mulike&&onedecay&&(truemu&&trueCCinc)));
+  NInCuts_mu1R_CCInc[6] = selection->Draw("mu_recoKE>>InCuts_mu_CCInc6",weight&&(mudwallcut&&mutowallcut&&R1&&mulike&&onedecay&&muEnergyCut&&(truemu&&trueCCinc)));
+  NInCuts_mu1R_CCInc[7] = selection->Draw("mu_recoKE>>InCuts_mu_CCInc7",weight&&(weightNCpi&&R1&&mulike&&onedecay&&muEnergyCut&&mudwallcut&&mutowallcut&&(truemu&&trueCCinc)));
+  NInCuts_mu1R_CCInc[8] = selection->Draw("mu_recoKE>>InCuts_mu_CCInc8",weight&&( weightNCpi&&R1&&mulike&&onedecay&&muEnergyCut&&mudwallcut&&mutowallcut&&nonfoll&&(truemu&&trueCCinc)));
   NInCuts_mu1R_CCInc_int[0] = InCuts_mu_CCInc0->Integral();
   NInCuts_mu1R_CCInc_int[1] = InCuts_mu_CCInc1->Integral();
   NInCuts_mu1R_CCInc_int[2] = InCuts_mu_CCInc2->Integral();

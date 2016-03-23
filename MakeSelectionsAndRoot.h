@@ -1,7 +1,7 @@
-// see MakeSelections.C for details
+// see MakeSelectionsAndRoot.C for details
 
-#ifndef MakeSelections_h
-#define MakeSelections_h
+#ifndef MakeSelectionsAndRoot_h
+#define MakeSelectionsAndRoot_h
 
 #include <TROOT.h>
 #include <TChain.h>
@@ -12,7 +12,7 @@
 
 // Fixed size dimensions of array or collections stored in the TTree if any.
 
-class MakeSelections {
+class MakeSelectionsAndRoot {
 public :
    TTree          *fChain;   //!pointer to the analyzed TTree or TChain
    TTree          *nRooTracker;
@@ -26,7 +26,7 @@ public :
    // Declaration of leaf types
    Int_t           evt;
    Int_t           nClusters;
-   Int_t nSubevents;
+   Int_t           nSubevents;
    Int_t           cluster[20];   //[nSubevents]
    Int_t           ring[20];   //[nSubevents]
    Bool_t          isHighE[20];   //[nSubevents]
@@ -58,6 +58,10 @@ public :
    Int_t           nNeutrons;
    Int_t           neutronCount;
    Int_t           nCaptures;
+   Double_t        trueToWall;
+   Double_t        trueDWall;
+   Int_t           recoCaptures;
+
 
    Double_t        recoVtxXLowE[20];   //[nSubevents]
    Double_t        recoVtxYLowE[20];   //[nSubevents]
@@ -316,13 +320,13 @@ public :
    TBranch        *b_NEivertf;   //!
    TBranch        *b_StdHepPdg;   //!
 
-   MakeSelections(bool isAntiNu=false, TTree *tree=0, TTree * tracker=0, TTree * out=0);
-   virtual ~MakeSelections();
+   MakeSelectionsAndRoot(bool isAntiNu=false, TTree *tree=0, TTree * tracker=0, TTree * out=0);
+   virtual ~MakeSelectionsAndRoot();
    virtual Int_t    Cut(Long64_t entry);
    virtual Int_t    GetEntry(Long64_t entry);
    virtual Long64_t LoadTree(Long64_t entry);
    virtual void     Init(TTree *tree, TTree *tracker, TTree *out);
-   virtual void     Loop();
+   virtual void     Loop(bool outputroot=true);
    virtual Bool_t   Notify();
    virtual void     Show(Long64_t entry = -1);
 
@@ -332,8 +336,8 @@ public :
 };
 #endif
 
-#ifdef MakeSelections_cxx
-MakeSelections::MakeSelections(bool isAntiNu, TTree *tree, TTree *tracker, TTree *out) : fChain(0), nRooTracker(0), outChain(0)
+#ifdef MakeSelectionsAndRoot_cxx
+MakeSelectionsAndRoot::MakeSelectionsAndRoot(bool isAntiNu, TTree *tree, TTree *tracker, TTree *out) : fChain(0), nRooTracker(0), outChain(0)
 {
 // if parameter tree is not specified (or zero), connect the file
 // used to generate this class and read the Tree.
@@ -353,7 +357,7 @@ MakeSelections::MakeSelections(bool isAntiNu, TTree *tree, TTree *tracker, TTree
          flav_count[j]=0;
          const char *s = flavs[j].Data();
 // swap the following 2 lines to only run on the files named _1000_ (ie on one set for a quick test)
-//         for (int i = 1000; i < 1001; i++) {
+//         for (int i = 1000; i < 1005; i++) {
          for (int i = 1000; i < 1100; i++) {
             //Missing vector files for antinu mode:
             if(isAntiNu && j==0 && (i==1096 || i==1037)) continue;
@@ -378,7 +382,7 @@ MakeSelections::MakeSelections(bool isAntiNu, TTree *tree, TTree *tracker, TTree
 // Add in the simulation out rootfile so that we have access to the particle info            
             o->AddFile(Form("/data/hyperk/wchsandbox_reco/flav_%s/%s_%s_%i/%s_%s_%i_out_12in.root", s, a, s, i, a, s, i));
             flav_count[j]+=1000;
-	        cout << i  << " " << j << " " << s << " " << a << endl;
+	        std::cout << i  << " " << j << " " << s << " " << a << std::endl;
          }
       }
       f->AddFriend(le);
@@ -395,7 +399,7 @@ MakeSelections::MakeSelections(bool isAntiNu, TTree *tree, TTree *tracker, TTree
    Init(tree,tracker,out);
 }
 
-MakeSelections::~MakeSelections()
+MakeSelectionsAndRoot::~MakeSelectionsAndRoot()
 {
    if (!fChain) return;
    delete fChain->GetCurrentFile();
@@ -403,7 +407,7 @@ MakeSelections::~MakeSelections()
    delete nRooTracker->GetCurrentFile();
 }
 
-Int_t MakeSelections::GetEntry(Long64_t entry)
+Int_t MakeSelectionsAndRoot::GetEntry(Long64_t entry)
 {
 // Read contents of entry.
    int nb = 0;
@@ -413,7 +417,7 @@ Int_t MakeSelections::GetEntry(Long64_t entry)
    nb += nRooTracker->GetEntry(entry);
    return nb;
 }
-Long64_t MakeSelections::LoadTree(Long64_t entry)
+Long64_t MakeSelectionsAndRoot::LoadTree(Long64_t entry)
 {
 // Set the environment to read one entry
    if (!fChain) return -5;
@@ -433,7 +437,7 @@ Long64_t MakeSelections::LoadTree(Long64_t entry)
    return centry;
 }
 
-void MakeSelections::Init(TTree *tree, TTree *tracker, TTree *out)
+void MakeSelectionsAndRoot::Init(TTree *tree, TTree *tracker, TTree *out)
 {
    // The Init() function is called when the selector needs to initialize
    // a new tree or fChain. Typically here the branch addresses and branch
@@ -457,13 +461,13 @@ void MakeSelections::Init(TTree *tree, TTree *tracker, TTree *out)
    outChain->SetMakeClass(1);
 
    fChain->SetBranchAddress("evt", &evt, &b_evt);
-//   fChain->SetBranchAddress("nClusters", &nClusters, &b_nClusters);
+   fChain->SetBranchAddress("nClusters", &nClusters, &b_nClusters);
    fChain->SetBranchAddress("nSubevents", &nSubevents, &b_nSubevents);
-//   fChain->SetBranchAddress("cluster", cluster, &b_cluster);
+   fChain->SetBranchAddress("cluster", cluster, &b_cluster);
 
    fChain->SetBranchAddress("ring", ring, &b_ring);
    fChain->SetBranchAddress("isHighE", isHighE, &b_isHighE);
-//   fChain->SetBranchAddress("ringPEs", ringPEs, &b_ringPEs);
+   fChain->SetBranchAddress("ringPEs", ringPEs, &b_ringPEs);
    fChain->SetBranchAddress("trueVtxX", &trueVtxX, &b_trueVtxX);
    fChain->SetBranchAddress("trueVtxY", &trueVtxY, &b_trueVtxY);
    fChain->SetBranchAddress("trueVtxZ", &trueVtxZ, &b_trueVtxZ);
@@ -535,6 +539,9 @@ void MakeSelections::Init(TTree *tree, TTree *tracker, TTree *out)
    fChain->SetBranchAddress("recoEnergy", recoEnergy, &b_recoEnergy);
    fChain->SetBranchAddress("recoPID", recoPID, &b_recoPID);
    fChain->SetBranchAddress("recoNRings", recoNRings, &b_recoNRings);
+   fChain->SetBranchAddress("trueToWall", &trueToWall);
+   fChain->SetBranchAddress("trueDWall", &trueDWall);
+   fChain->SetBranchAddress("recoCaptures", &recoCaptures);
 /*
    fCard->SetBranchAddress("neutrino_E", &neutrino_E, &b_neutrino_E);
    fCard->SetBranchAddress("neutrino_id", &neutrino_id, &b_neutrino_id);
@@ -634,7 +641,7 @@ void MakeSelections::Init(TTree *tree, TTree *tracker, TTree *out)
    Notify();
 }
 
-Bool_t MakeSelections::Notify()
+Bool_t MakeSelectionsAndRoot::Notify()
 {
    // The Notify() function is called when a new file is opened. This
    // can be either for a new TTree in a TChain or when when a new TTree
@@ -645,7 +652,7 @@ Bool_t MakeSelections::Notify()
    return kTRUE;
 }
 
-void MakeSelections::Show(Long64_t entry)
+void MakeSelectionsAndRoot::Show(Long64_t entry)
 {
 // Print contents of entry.
 // If entry is not specified, print current entry
@@ -654,11 +661,11 @@ void MakeSelections::Show(Long64_t entry)
    if (!nRooTracker) return;
    nRooTracker->Show(entry);
 }
-Int_t MakeSelections::Cut(Long64_t entry)
+Int_t MakeSelectionsAndRoot::Cut(Long64_t entry)
 {
 // This function may be called from Loop.
 // returns  1 if entry is accepted.
 // returns -1 otherwise.
    return 1;
 }
-#endif // #ifdef MakeSelections_cxx
+#endif // #ifdef MakeSelectionsAndRoot_cxx

@@ -218,8 +218,8 @@ selections::selections(TTree *tree, TTree *tracker, TTree *out) : fChain(0), nRo
          for (int j = 0; j < 4; j++) {
             const char *s = flavs[j].Data();
 // swap following two lines for a quick test when you only run over one file instead of many
-            for (int i = 1000; i < 1100; i++) {
-//            for (int i = 1000; i < 1001; i++) {
+//            for (int i = 1000; i < 1100; i++) {
+            for (int i = 1000; i < 1005; i++) {
                //Missing vector files for antinu mode:
                if (k == 1 && j == 0 && (i == 1096 || i==1037)) continue;
                if (k == 1 && j == 1 && (i == 1017 || i == 1053)) continue;
