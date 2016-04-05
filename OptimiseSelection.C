@@ -14,7 +14,12 @@ using namespace std;
 
 void OptimiseSelection(bool fhc = true) {
   // This is the name of the file created by the selections.C/.h code
-  TFile * f= new TFile("selections_androot_tagged_FHC.root", "READ");
+  TFile * f;
+  if(fhc){
+   f = new TFile("selections_androot_tagged_FHC.root", "READ");
+  }esle{
+   f = new TFile("selections_androot_tagged_RHC.root", "READ");
+  }
   TTree *selection = (TTree *) f->Get("AllEvents");
 
   TCut R1 = "isHighE&&(ring2PEs/ring1PEs)<0.09";
@@ -44,8 +49,7 @@ void OptimiseSelection(bool fhc = true) {
   TCut e1Rfolls   = e1R && nfolls;
   
   TCut pi0 = "abs(mu_recoKE)==31||abs(interaction_mode)==32||abs(interaction_mode)==36";
-  TCut weightNCpi = "(((abs(interaction_mode)==31 || abs(interaction_mode)==32 || abs(interaction_mode)==36) || (n_pi0>0)&&(rndm>0.88889))||!((abs(interaction_mode)==31 || abs(interaction_mode)==32 || abs(interaction_mode)==36) || n_pi0>0))";
-
+  TCut weightNCpi = "(((abs(interaction_mode)==31 || abs(interaction_mode)==32 || abs(interaction_mode)==36) || (n_pi0>0)) &&(rndm>0.88889)||!((abs(interaction_mode)==31 || abs(interaction_mode)==32 || abs(interaction_mode)==36)||n_pi0>0))";
   TCut truemu = "neutrino_id==14";
   TCut truee = "neutrino_id==12";
   TCut trueCCQE = "interaction_mode==1";
@@ -54,19 +58,22 @@ void OptimiseSelection(bool fhc = true) {
 
   TCut weightFHC = "(30.7419*(neutrino_id==14)+0.584919*(neutrino_id==12)+0.875846*(neutrino_id==-14)+0.0590713*(neutrino_id==-12))";
   TCut weightRHC = "(3.90061*(neutrino_id==14)+0.172118*(neutrino_id==12)+7.6609*(neutrino_id==-14)+0.147396*(neutrino_id==-12))";
-   TCut weight = weightFHC;
+  TCut weight = weightFHC;
 // Use this option for full weighting, but turn it off for cross check against Valor numbers
 //  TCut weight = "1";
   
   if(!fhc){
     truemu = "neutrino_id==-14";
     truee = "neutrino_id==-12";
-    truecc = "interaction_mode==-1";
-    tag = "FHC";
+    trueCCQE = "interaction_mode==-1";
+    trueCCinc = "interaction_mode<=-1&&interaction_mode>=-26";
+    tag = "RHC";
     weight = weightRHC;
   }
+ 
   
 //  Use these options in comparison to the MakeSelections code so that we can see the output for a particular neutrino type only
+//  weightNCpi = "1";
 //  weight = "1*neutrino_id==14+0*(neutrino_id!=14)";
 //  weight = "1*neutrino_id==12+0*(neutrino_id!=12)";
 
@@ -89,6 +96,14 @@ void OptimiseSelection(bool fhc = true) {
   gPad->SetLogy();
   selection->Draw("interaction_mode>>neut_musel2",weight*weightNCpi*(R1&&mulike&&onedecay&&muEnergyCut&&mudwallcut&&mutowallcut&&nonfoll));
   Cneut2->Print("Cneut2.C");
+  
+  float norm = neut_esel2->Integral(neut_esel2->FindBin(-50),neut_esel2->FindBin(50));
+  for(int ii=-50;ii<50;++ii){
+    int bin = neut_esel2->FindBin(ii);
+    float num = neut_esel2->GetBinContent(bin);
+    float frac = num/norm;
+    cout << "mode " << ii << " contents = \t" << num << " events ( " << 100*frac << " % )" << endl;
+  }
   
   // Make selections here - apply cuts one by one so we can see reduction effect
   // e1R
@@ -393,6 +408,8 @@ void OptimiseSelection(bool fhc = true) {
   cout << setprecision(3)<< "1Re (CCQE) & " << 100*InCuts_e_CCQE6->Integral()/InCuts_e_all6->Integral() << " & " << 100*InCuts_e_CCQE6->Integral()/InCuts_e_CCQE2->Integral() << " & " << 100*InCuts_e_CCQE6->Integral()/InCuts_e_CCQE0->Integral() << " \\\\ \\hline" << endl;
   cout << setprecision(3)<< "1Re NC$\\pi^0$ reduction (CCQE) & " << 100*InCuts_e_CCQE7->Integral()/InCuts_e_all7->Integral() << " & " << 100*InCuts_e_CCQE7->Integral()/InCuts_e_CCQE2->Integral() << " & " << 100*InCuts_e_CCQE7->Integral()/InCuts_e_CCQE0->Integral() << " \\\\ \\hline" << endl;
   cout << setprecision(3)<< "1Re no n followers (CCQE) & " << 100*InCuts_e_CCQE8->Integral()/InCuts_e_all8->Integral() << " & " << 100*InCuts_e_CCQE8->Integral()/InCuts_e_CCQE2->Integral() << " & " << 100*InCuts_e_CCQE8->Integral()/InCuts_e_CCQE0->Integral() << " \\\\ \\hline" << endl;
+  cout <<"\n"<< setprecision(3)<< "1R$\\mu$ n followers (CCQE) & " << 100*(InCuts_mu_CCQE7->Integral()-InCuts_mu_CCQE8->Integral())/(InCuts_mu_all7->Integral()-InCuts_mu_all8->Integral()) << " & " << 100*(InCuts_mu_CCQE7->Integral()-InCuts_mu_CCQE8->Integral())/InCuts_mu_CCQE2->Integral() << " & " << 100*(InCuts_mu_CCQE7->Integral()-InCuts_mu_CCQE8->Integral())/InCuts_mu_CCQE0->Integral() << " \\\\ \\hline" << endl;
+  cout <<"\n"<< setprecision(3)<< "1Re n followers (CCQE) & " << 100*(InCuts_e_CCQE7->Integral()-InCuts_e_CCQE8->Integral())/(InCuts_e_all7->Integral()-InCuts_e_all8->Integral()) << " & " << 100*(InCuts_e_CCQE7->Integral()-InCuts_e_CCQE8->Integral())/InCuts_e_CCQE2->Integral() << " & " << 100*(InCuts_e_CCQE7->Integral()-InCuts_e_CCQE8->Integral())/InCuts_e_CCQE0->Integral() << " \\\\ \\hline" << endl;
 
   
   //NCpi0
