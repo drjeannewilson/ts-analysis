@@ -38,6 +38,9 @@ void MakeSelectionsAndRoot::Loop(bool outputntuple)
    int recoNeutrons;
    int ntrueNcap;
    int ntrueNeutrons;
+   int ncapGd;
+   int ncapD;
+   int ncapOther;
 
    Float_t         pnu[100];   //[numnu]  GeV/c
    Float_t         dirnu[100][3];   //[numnu]
@@ -92,6 +95,10 @@ void MakeSelectionsAndRoot::Loop(bool outputntuple)
    ntuple->Branch("interaction_mode", &mode, "interaction_mode/I");
    ntuple->Branch("n_pi0", &npi0, "n_pi0/I");
    ntuple->Branch("nneutron", &nneutron, "nneutron/I");
+   ntuple->Branch("ncapture", &ntrueNcap, "ncapture/I");
+   ntuple->Branch("ncapGd", &ncapGd, "ncapGd/I");
+   ntuple->Branch("ncapD", &ncapD, "ncapD/I");
+   ntuple->Branch("ncapOther", &ncapOther, "ncapOther/I");
    ntuple->Branch("true_dwall", &trueDWall, "true_dwall/D");
    ntuple->Branch("true_towall", &trueToWall, "true_towall/D");
    ntuple->Branch("mu_reco_dwall", &mu_reco_dwall, "mu_reco_dwall/D");
@@ -268,7 +275,22 @@ void MakeSelectionsAndRoot::Loop(bool outputntuple)
 
       bool neutron_tag = false;
       ntrueNcap = nCaptures;  // Get from original file
-      ntrueNeutrons = nneutrons;  // Counted from simulation secondary info above
+      ncapGd = 0;
+      ncapD = 0;
+      ncapOther = 0;
+      for(int ic = 0 ; ic<nCaptures; ++ic){
+      	// Check the capture nucleus
+	if(capt_nucleus[ic]>=3336){
+	  ncapGd++;
+	}else if(capt_nucleus[ic]==3329){
+	  ncapD++;
+        }else{
+	  ncapOther++;
+	}
+        //cout << ic << " " << capt_nucleus[ic] << ", ";
+      }
+      //cout << endl;
+      ntrueNeutrons = nneutron;  // Counted from simulation FS info above
       recoMichels = 0;
       recoNeutrons = 0;
       for(int iSubevent = 0; iSubevent < nSubevents; iSubevent ++) {
